@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Kalkulator HPP — Kopi Kemasan</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+
+  :root{
+    --cream:#F6EEE1; --cream-deep:#EEE1CB; --espresso:#2C1D14; --espresso-soft:#6E5A48;
+    --line:#E1CFAF; --caramel:#B9793C; --caramel-bg:#F3E2C8; --moss:#6E7D53; --moss-bg:#E9EEDB;
+    --rust:#AD4A30; --rust-bg:#F6DFD5; --white:#FFFCF7;
+    --shadow: 0 1px 2px rgba(44,29,20,0.06), 0 10px 26px -14px rgba(44,29,20,0.28);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--cream); color:var(--espresso); font-family:'Inter',sans-serif; padding:36px 20px 90px;}
+  .wrap{max-width:1160px; margin:0 auto;}
+
+  header.top{margin-bottom:28px; border-bottom:2px solid var(--line); padding-bottom:22px;}
+  .eyebrow{font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--caramel); font-weight:700; margin-bottom:8px;}
+  h1{font-family:'DM Serif Display',serif; font-weight:400; font-size:38px; margin:0 0 8px; letter-spacing:-.01em;}
+  .sub{color:var(--espresso-soft); font-size:14.5px; max-width:620px; line-height:1.55;}
+  .logout-link{font-size:12.5px; color:var(--espresso-soft); text-decoration:underline; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; padding:0; margin-top:8px;}
+
+  /* ---- Gerbang Login ---- */
+  #loginScreen{ min-height:80vh; display:flex; align-items:center; justify-content:center; flex-direction:column; }
+  .login-card{ background:var(--white); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:38px 34px; width:100%; max-width:380px; }
+  .login-card h1{font-size:26px;}
+  .login-card p{color:var(--espresso-soft); font-size:13.5px; margin:0 0 22px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12.5px; font-weight:600; color:var(--espresso-soft); margin-bottom:5px;}
+  .field input{width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-family:'Inter',sans-serif; font-size:14px; background:var(--cream);}
+  .login-btn{width:100%; margin-top:6px; padding:11px; background:var(--caramel); color:#fff; border:none; border-radius:8px; font-weight:700; font-size:14px; cursor:pointer;}
+  .login-btn:disabled{opacity:.6;}
+  .login-err{color:var(--rust); font-size:12.5px; margin-top:10px; min-height:16px;}
+  #dashboardScreen{display:none;}
+  #syncBar{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--espresso-soft); margin-bottom:18px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; align-items:center;}
+  .save-status{font-family:'JetBrains Mono',monospace; font-size:12px; margin-left:10px;}
+  .save-status.ok{color:var(--moss);} .save-status.err{color:var(--rust);}
+
+  section{margin-bottom:32px;}
+  .sec-head{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; flex-wrap:wrap; gap:8px;}
+  h2{font-family:'DM Serif Display',serif; font-weight:400; font-size:23px; margin:0;}
+  .hint{font-size:12.5px; color:var(--espresso-soft);}
+
+  .card{background:var(--white); border:1px solid var(--line); border-radius:14px; padding:22px; box-shadow:var(--shadow);}
+
+  table{width:100%; border-collapse:collapse; font-size:13.6px;}
+  th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--espresso-soft); padding:9px 8px; border-bottom:2px solid var(--line); font-weight:700;}
+  td{padding:8px 8px; border-bottom:1px dashed var(--line); vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  td.num, th.num{font-family:'JetBrains Mono',monospace; text-align:right; white-space:nowrap;}
+  input[type="text"], input[type="number"], select{
+    padding:7px 9px; border:1px solid var(--line); border-radius:7px; font-family:'Inter',sans-serif; font-size:13.5px; background:var(--cream); width:100%;
+  }
+  input[type="number"]{font-family:'JetBrains Mono',monospace; text-align:right;}
+  .del-btn{background:none; border:none; color:var(--rust); font-size:16px; cursor:pointer; font-weight:700;}
+  .btn{font-family:'Inter',sans-serif; font-weight:700; font-size:13px; border:none; border-radius:8px; padding:10px 16px; cursor:pointer;}
+  .btn-primary{background:var(--caramel); color:#fff;}
+  .btn-ghost{background:transparent; color:var(--espresso-soft); border:1px solid var(--line);}
+  .btn-row{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;}
+
+  /* ---- Pemilih Varian ---- */
+  .varian-pills{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;}
+  .varian-pills button{
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; padding:7px 14px; border-radius:20px;
+    border:1px solid var(--line); background:var(--white); color:var(--espresso-soft); cursor:pointer;
+  }
+  .varian-pills button.active{background:var(--espresso); color:var(--cream); border-color:var(--espresso);}
+
+  .hpp-badge{
+    display:inline-flex; flex-direction:column; align-items:center; justify-content:center;
+    width:118px; height:118px; border-radius:50%; border:3px dashed var(--caramel); background:var(--caramel-bg);
+    text-align:center; flex-shrink:0;
+  }
+  .hpp-badge .lbl{font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--espresso-soft); font-weight:700;}
+  .hpp-badge .val{font-family:'JetBrains Mono',monospace; font-size:15px; font-weight:700; color:var(--espresso); margin-top:3px; line-height:1.2;}
+
+  .varian-head{display:flex; gap:20px; align-items:center; flex-wrap:wrap; margin-bottom:18px;}
+  .varian-head-info h3{font-family:'DM Serif Display',serif; font-weight:400; font-size:22px; margin:0 0 4px;}
+  .varian-head-info div{font-size:12.5px; color:var(--espresso-soft);}
+
+  .breakdown-bar{height:10px; border-radius:6px; overflow:hidden; display:flex; margin-top:14px; border:1px solid var(--line);}
+  .breakdown-bar span{height:100%;}
+
+  /* ---- Ringkasan ---- */
+  .kpi-row{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:20px;}
+  .kpi{background:var(--white); border:1px solid var(--line); border-radius:12px; padding:16px 18px; box-shadow:var(--shadow);}
+  .kpi .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--espresso-soft); font-weight:700;}
+  .kpi .val{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; margin-top:6px;}
+  @media (max-width:720px){ .kpi-row{grid-template-columns:1fr;} }
+
+  .margin-input-row{display:flex; align-items:center; gap:10px; margin-bottom:14px; font-size:13.5px;}
+  .margin-input-row input{width:90px;}
+  .tag-margin{font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; font-family:'JetBrains Mono',monospace;}
+  .tag-margin.good{background:var(--moss-bg); color:var(--moss);}
+  .tag-margin.bad{background:var(--rust-bg); color:var(--rust);}
+
+  .chart-box{position:relative; height:320px; margin-top:10px;}
+
+  footer{margin-top:40px; padding-top:16px; border-top:1px dashed var(--line);
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--espresso-soft); text-align:center;}
+
+  @media (max-width:700px){
+    table.resp-stack thead{display:none;}
+    table.resp-stack, table.resp-stack tbody, table.resp-stack tr, table.resp-stack td{display:block; width:100%;}
+    table.resp-stack tr{border-bottom:2px solid var(--line); padding:8px 0; margin-bottom:6px;}
+    table.resp-stack td{border-bottom:none; padding:4px 0; display:flex; justify-content:space-between; gap:10px;}
+    table.resp-stack td.num{text-align:right;}
+    table.resp-stack td::before{content:attr(data-label); font-size:11px; color:var(--espresso-soft); font-weight:600;}
+  }
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="wrap">
+  <div class="login-card">
+    <div class="eyebrow">Sistem Internal · Kopi Kemasan</div>
+    <h1>Masuk</h1>
+    <p>Data harga bahan baku, resep, dan harga jual hanya bisa diakses setelah login.</p>
+    <div class="field"><label>Email</label><input type="email" id="loginEmail" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="loginPassword" autocomplete="current-password"></div>
+    <button class="login-btn" id="loginBtn">Masuk</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="dashboardScreen">
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">Sistem Internal · Kopi Kemasan</div>
+    <h1>Kalkulator HPP per Botol</h1>
+    <div class="sub">Hitung harga pokok produksi tiap varian kopi kemasan berdasarkan harga bahan baku &amp; resep. Ubah harga bahan baku atau takaran resep kapan saja — semua total otomatis terhitung ulang.</div>
+    <button class="logout-link" id="logoutBtn">Keluar</button>
+  </header>
+
+  <div id="syncBar">
+    <span id="syncStatus">Memuat data dari Supabase…</span>
+    <button class="btn btn-ghost" id="refreshBtn">Muat Ulang Data</button>
+  </div>
+
+
+  <section>
+    <div class="sec-head">
+      <h2>Harga Bahan Baku</h2>
+      <div class="hint">Harga per satuan (gr/ml/pc) dihitung otomatis dari harga per kemasan</div>
+    </div>
+    <div class="card">
+      <div style="overflow-x:auto;">
+        <table id="bahanTable">
+          <thead><tr><th>Bahan Baku</th><th class="num">Isi Kemasan</th><th>Satuan</th><th class="num">Harga / Kemasan (Rp)</th><th class="num">Harga / Satuan (Rp)</th><th></th></tr></thead>
+          <tbody id="bahanTbody"></tbody>
+        </table>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="addBahanBtn">+ Tambah Bahan Baku</button>
+        <button class="btn btn-primary alt" id="saveBahanBtn" style="background:var(--moss);">💾 Simpan Perubahan Bahan Baku</button>
+        <span class="save-status" id="bahanSaveStatus"></span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Resep &amp; HPP per Varian</h2></div>
+    <div class="varian-pills" id="varianPills"></div>
+    <div class="card" id="varianDetailCard"></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="addVarianBtn">+ Tambah Varian Baru</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Ringkasan &amp; Simulasi Harga Jual</h2></div>
+    <div class="card">
+      <div class="margin-input-row">
+        <span>Target margin default:</span>
+        <input type="number" id="targetMarginInput" value="35" min="0" max="95"> <span>%</span>
+        <button class="btn btn-ghost" id="applyMarginBtn">Terapkan ke Semua Varian</button>
+        <button class="btn btn-primary" id="saveHargaJualBtn" style="background:var(--moss);">💾 Simpan Semua Harga Jual</button>
+        <span class="save-status" id="hargaJualSaveStatus"></span>
+        <span class="hint">(Harga Jual per varian tetap bisa diubah manual di tabel bawah)</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table id="summaryTable" class="resp-stack">
+          <thead><tr><th>Varian</th><th class="num">HPP / Botol</th><th class="num">Harga Jual</th><th class="num">Margin (Rp)</th><th class="num">Margin (%)</th></tr></thead>
+          <tbody id="summaryTbody"></tbody>
+        </table>
+      </div>
+      <div class="chart-box"><canvas id="chartSummary"></canvas></div>
+    </div>
+  </section>
+
+  <footer id="footerNote">Kalkulator HPP internal — tersambung ke Supabase. Semua perubahan tersimpan permanen setelah menekan tombol Simpan di masing-masing bagian.</footer>
+</div>
+</div>
+
+<script>
+const DEFAULT_BAHAN_BAKU = [
+{
+"nama": "Nescafe",
+"kemasan": 45.0,
+"satuan": "gr",
+"hargaKemasan": 22000.0
+},
+{
+"nama": "Gula Aren Organik",
+"kemasan": 1000.0,
+"satuan": "gr",
+"hargaKemasan": 30000.0
+},
+{
+"nama": "Kapal Api Krim Kafe",
+"kemasan": 500.0,
+"satuan": "gr",
+"hargaKemasan": 31000.0
+},
+{
+"nama": "Ultra Full Cream",
+"kemasan": 1000.0,
+"satuan": "ml",
+"hargaKemasan": 20000.0
+},
+{
+"nama": "Monin Syrup Butterchotch",
+"kemasan": 700.0,
+"satuan": "ml",
+"hargaKemasan": 140200.0
+},
+{
+"nama": "Monin Syrup Caramel",
+"kemasan": 700.0,
+"satuan": "ml",
+"hargaKemasan": 140200.0
+},
+{
+"nama": "Dreamy Non Dairy Milky Creamer",
+"kemasan": 1000.0,
+"satuan": "gr",
+"hargaKemasan": 73477.5
+},
+{
+"nama": "Air",
+"kemasan": 1900.0,
+"satuan": "ml",
+"hargaKemasan": 6000.0
+},
+{
+"nama": "Botol 250 ml",
+"kemasan": 1.0,
+"satuan": "pc",
+"hargaKemasan": 2403.3333
+},
+{
+"nama": "Botol 500 ml",
+"kemasan": 1.0,
+"satuan": "pc",
+"hargaKemasan": 4133.3333
+},
+{
+"nama": "Botol 1000 ml",
+"kemasan": 1.0,
+"satuan": "pc",
+"hargaKemasan": 4633.3333
+},
+{
+"nama": "Stiker 250 ml",
+"kemasan": 1.0,
+"satuan": "pc",
+"hargaKemasan": 227.2727
+},
+{
+"nama": "Stiker 500 ml",
+"kemasan": 1.0,
+"satuan": "pc",
+"hargaKemasan": 347.2222
+},
+{
+"nama": "Stiker 1000 ml",
+"kemasan": 1.0,
+"satuan": "pc",
+"hargaKemasan": 500.0
+},
+{
+"nama": "Hangtag",
+"kemasan": 1.0,
+"satuan": "pc",
+"hargaKemasan": 122.2222
+},
+{
+"nama": "Tali Rami",
+"kemasan": 1.0,
+"satuan": "pc",
+"hargaKemasan": 120.0
+}
+];
+const DEFAULT_RESEP = [
+{
+"varian": "Aren 250 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 5.0,
+"satuan": "gr"
+},
+{
+"bahan": "Gula Aren Organik",
+"qty": 14.0,
+"satuan": "gr"
+},
+{
+"bahan": "Kapal Api Krim Kafe",
+"qty": 20.0,
+"satuan": "gr"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 200.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 20.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 250 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 250 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Aren 500 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 10.0,
+"satuan": "gr"
+},
+{
+"bahan": "Gula Aren Organik",
+"qty": 28.0,
+"satuan": "gr"
+},
+{
+"bahan": "Kapal Api Krim Kafe",
+"qty": 40.0,
+"satuan": "gr"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 400.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 40.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 500 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 500 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Aren 1000 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 20.0,
+"satuan": "gr"
+},
+{
+"bahan": "Gula Aren Organik",
+"qty": 56.0,
+"satuan": "gr"
+},
+{
+"bahan": "Kapal Api Krim Kafe",
+"qty": 80.0,
+"satuan": "gr"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 800.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 80.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 1000 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 1000 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Latte No Sugar 250 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 5.0,
+"satuan": "gr"
+},
+{
+"bahan": "Kapal Api Krim Kafe",
+"qty": 20.0,
+"satuan": "gr"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 200.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 20.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 250 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 250 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Latte No Sugar 500 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 10.0,
+"satuan": "gr"
+},
+{
+"bahan": "Kapal Api Krim Kafe",
+"qty": 40.0,
+"satuan": "gr"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 400.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 40.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 500 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 500 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Latte No Sugar 1000 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 20.0,
+"satuan": "gr"
+},
+{
+"bahan": "Kapal Api Krim Kafe",
+"qty": 80.0,
+"satuan": "gr"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 800.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 80.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 1000 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 1000 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Butterschotch 250 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 5.0,
+"satuan": "gr"
+},
+{
+"bahan": "Dreamy Non Dairy Milky Creamer",
+"qty": 30.0,
+"satuan": "gr"
+},
+{
+"bahan": "Monin Syrup Butterchotch",
+"qty": 20.0,
+"satuan": "ml"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 170.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 40.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 250 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 250 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Butterschotch 500 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 10.0,
+"satuan": "gr"
+},
+{
+"bahan": "Dreamy Non Dairy Milky Creamer",
+"qty": 60.0,
+"satuan": "gr"
+},
+{
+"bahan": "Monin Syrup Butterchotch",
+"qty": 40.0,
+"satuan": "ml"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 340.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 80.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 500 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 500 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Butterschotch 1000 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 20.0,
+"satuan": "gr"
+},
+{
+"bahan": "Dreamy Non Dairy Milky Creamer",
+"qty": 120.0,
+"satuan": "gr"
+},
+{
+"bahan": "Monin Syrup Butterchotch",
+"qty": 80.0,
+"satuan": "ml"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 680.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 160.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 1000 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 1000 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Caramel 250 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 5.0,
+"satuan": "gr"
+},
+{
+"bahan": "Dreamy Non Dairy Milky Creamer",
+"qty": 30.0,
+"satuan": "gr"
+},
+{
+"bahan": "Monin Syrup Caramel",
+"qty": 22.0,
+"satuan": "ml"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 170.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 40.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 250 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 250 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Caramel 500 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 10.0,
+"satuan": "gr"
+},
+{
+"bahan": "Dreamy Non Dairy Milky Creamer",
+"qty": 60.0,
+"satuan": "gr"
+},
+{
+"bahan": "Monin Syrup Caramel",
+"qty": 44.0,
+"satuan": "ml"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 340.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 80.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 500 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 500 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+},
+{
+"varian": "Caramel 1000 ml",
+"items": [
+{
+"bahan": "Nescafe",
+"qty": 20.0,
+"satuan": "gr"
+},
+{
+"bahan": "Dreamy Non Dairy Milky Creamer",
+"qty": 120.0,
+"satuan": "gr"
+},
+{
+"bahan": "Monin Syrup Caramel",
+"qty": 88.0,
+"satuan": "ml"
+},
+{
+"bahan": "Ultra Full Cream",
+"qty": 680.0,
+"satuan": "ml"
+},
+{
+"bahan": "Air",
+"qty": 160.0,
+"satuan": "ml"
+},
+{
+"bahan": "Botol 1000 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Stiker 1000 ml",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Hangtag",
+"qty": 1.0,
+"satuan": "pc"
+},
+{
+"bahan": "Tali Rami",
+"qty": 1.0,
+"satuan": "pc"
+}
+]
+}
+];
+let SELLING = {}; // {varian: hargaJual}
+let BAHAN_BAKU = [];
+let RESEP = [];
+let selectedVarian = null;
+let chartSummary = null;
+
+/* =====================================================================
+   KONFIGURASI — ISI DENGAN DATA PROJECT SUPABASE ANDA
+   Lihat: Supabase Dashboard > Project Settings > API
+   ===================================================================== */
+const SUPABASE_URL = 'https://olhmifmsmrhkbgjxypax.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9saG1pZm1zbXJoa2Jnanh5cGF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNjY0NTgsImV4cCI6MjA5ODY0MjQ1OH0._EdhNWnCvbq-h16z_jPKSTsE0w6P6q0T9Cb4Epme8jU';
+/* ===================================================================== */
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function rp(n){ return 'Rp' + Math.round(n).toLocaleString('id-ID'); }
+function rpFine(n){ return 'Rp' + n.toLocaleString('id-ID', {maximumFractionDigits:2}); }
+
+function hargaPerUnit(bahan){ return bahan.kemasan? bahan.hargaKemasan/bahan.kemasan : 0; }
+function findBahan(nama){ return BAHAN_BAKU.find(b=>b.nama.toLowerCase()===String(nama).toLowerCase()); }
+
+function computeHpp(resepItem){
+  let total = 0;
+  const detail = resepItem.items.map(it=>{
+    const b = findBahan(it.bahan);
+    const hargaUnit = b? hargaPerUnit(b) : 0;
+    const biaya = it.qty*hargaUnit;
+    total += biaya;
+    return {...it, hargaUnit, biaya, found: !!b};
+  });
+  return {total, detail};
+}
+
+/* ---------------- RENDER: BAHAN BAKU ---------------- */
+function renderBahanTable(){
+  const tbody = document.getElementById('bahanTbody');
+  tbody.innerHTML = BAHAN_BAKU.map((b,idx)=>`
+    <tr data-idx="${idx}">
+      <td><input type="text" class="b-nama" value="${b.nama}"></td>
+      <td class="num"><input type="number" class="b-kemasan" value="${b.kemasan}" min="0" step="any" style="width:90px;"></td>
+      <td><input type="text" class="b-satuan" value="${b.satuan}" style="width:60px;"></td>
+      <td class="num"><input type="number" class="b-harga" value="${b.hargaKemasan}" min="0" step="any" style="width:110px;"></td>
+      <td class="num b-per-unit">${rpFine(hargaPerUnit(b))}</td>
+      <td><button class="del-btn" data-idx="${idx}" title="Hapus">✕</button></td>
+    </tr>`).join('');
+}
+
+document.getElementById('bahanTbody').addEventListener('input', (e)=>{
+  const tr = e.target.closest('tr'); if(!tr) return;
+  const idx = +tr.dataset.idx;
+  const b = BAHAN_BAKU[idx];
+  if(e.target.classList.contains('b-nama')) b.nama = e.target.value;
+  else if(e.target.classList.contains('b-kemasan')) b.kemasan = parseFloat(e.target.value)||0;
+  else if(e.target.classList.contains('b-satuan')) b.satuan = e.target.value;
+  else if(e.target.classList.contains('b-harga')) b.hargaKemasan = parseFloat(e.target.value)||0;
+  tr.querySelector('.b-per-unit').textContent = rpFine(hargaPerUnit(b));
+  renderVarianDetail();
+  renderSummary();
+});
+
+document.getElementById('bahanTbody').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.del-btn'); if(!btn) return;
+  if(!confirm('Hapus bahan baku ini? Resep yang memakainya akan menampilkan "tidak ditemukan".')) return;
+  BAHAN_BAKU.splice(+btn.dataset.idx, 1);
+  renderBahanTable();
+  renderVarianDetail();
+  renderSummary();
+});
+
+document.getElementById('addBahanBtn').addEventListener('click', ()=>{
+  BAHAN_BAKU.push({nama:'Bahan Baru', kemasan:1, satuan:'gr', hargaKemasan:0});
+  renderBahanTable();
+});
+
+async function saveBahanBaku(){
+  const statusEl = document.getElementById('bahanSaveStatus');
+  statusEl.className='save-status'; statusEl.textContent='⏳ Menyimpan…';
+  try{
+    const rows = BAHAN_BAKU.map(b=>({nama:b.nama, kemasan:b.kemasan, satuan:b.satuan, harga_kemasan:b.hargaKemasan, updated_at:new Date().toISOString()}));
+    const {error: delErr} = await sb.from('bahan_baku').delete().neq('nama', '__none__');
+    if(delErr) throw delErr;
+    if(rows.length){
+      const {error: insErr} = await sb.from('bahan_baku').insert(rows);
+      if(insErr) throw insErr;
+    }
+    statusEl.className='save-status ok'; statusEl.textContent='✓ Tersimpan.';
+  }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
+}
+document.getElementById('saveBahanBtn').addEventListener('click', saveBahanBaku);
+
+/* ---------------- RENDER: VARIAN & RESEP ---------------- */
+function renderVarianPills(){
+  const el = document.getElementById('varianPills');
+  el.innerHTML = RESEP.map(r=>`<button data-varian="${r.varian.replace(/"/g,'&quot;')}" class="${r.varian===selectedVarian?'active':''}">${r.varian}</button>`).join('');
+}
+document.getElementById('varianPills').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-varian]'); if(!btn) return;
+  selectedVarian = btn.dataset.varian;
+  renderVarianPills();
+  renderVarianDetail();
+});
+
+function renderVarianDetail(){
+  const resepItem = RESEP.find(r=>r.varian===selectedVarian);
+  const card = document.getElementById('varianDetailCard');
+  if(!resepItem){ card.innerHTML = '<div style="color:var(--espresso-soft);">Varian tidak ditemukan.</div>'; return; }
+  const {total, detail} = computeHpp(resepItem);
+
+  const rowsHtml = detail.map((d,idx)=>`
+    <tr data-idx="${idx}">
+      <td>
+        <input type="text" class="r-bahan" value="${d.bahan}" list="bahanNameList">
+        ${!d.found?'<div style="color:var(--rust); font-size:11px; margin-top:2px;">tidak ditemukan di daftar bahan baku</div>':''}
+      </td>
+      <td class="num"><input type="number" class="r-qty" value="${d.qty}" min="0" step="any" style="width:80px;"></td>
+      <td><input type="text" class="r-satuan" value="${d.satuan}" style="width:60px;"></td>
+      <td class="num">${rpFine(d.hargaUnit)}</td>
+      <td class="num" style="font-weight:700;">${rpFine(d.biaya)}</td>
+      <td><button class="del-btn r-del" data-idx="${idx}" title="Hapus">✕</button></td>
+    </tr>`).join('');
+
+  const maxItemCost = Math.max(...detail.map(d=>d.biaya), 1);
+  const colors = ['#B9793C','#6E7D53','#AD4A30','#7A9AA8','#C4A24A','#8E6E9B','#5C8A6E','#B65C7A'];
+  const barHtml = detail.map((d,i)=> d.biaya>0 ? `<span style="width:${(d.biaya/total*100).toFixed(2)}%; background:${colors[i%colors.length]};" title="${d.bahan}: ${rp(d.biaya)}"></span>` : '').join('');
+
+  card.innerHTML = `
+    <div class="varian-head">
+      <div class="hpp-badge"><div class="lbl">HPP / Botol</div><div class="val">${rp(total)}</div></div>
+      <div class="varian-head-info">
+        <h3>${resepItem.varian}</h3>
+        <div>${detail.length} bahan · total biaya ${rp(total)} per botol</div>
+      </div>
+    </div>
+    <datalist id="bahanNameList">${BAHAN_BAKU.map(b=>`<option value="${b.nama.replace(/"/g,'&quot;')}">`).join('')}</datalist>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr><th>Bahan</th><th class="num">Qty</th><th>Satuan</th><th class="num">Harga/Satuan</th><th class="num">Biaya</th><th></th></tr></thead>
+        <tbody id="resepTbody">${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div class="breakdown-bar">${barHtml}</div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="addBahanResepBtn">+ Tambah Bahan ke Resep Ini</button>
+      <button class="btn btn-primary" id="saveResepBtn" style="background:var(--moss);">💾 Simpan Resep Ini</button>
+      <button class="btn btn-ghost" id="delVarianBtn" style="color:var(--rust); border-color:var(--rust);">Hapus Varian Ini</button>
+      <span class="save-status" id="resepSaveStatus"></span>
+    </div>
+  `;
+
+  document.getElementById('resepTbody').addEventListener('input', (e)=>{
+    const tr = e.target.closest('tr'); if(!tr) return;
+    const idx = +tr.dataset.idx;
+    const item = resepItem.items[idx];
+    if(e.target.classList.contains('r-bahan')) item.bahan = e.target.value;
+    else if(e.target.classList.contains('r-qty')) item.qty = parseFloat(e.target.value)||0;
+    else if(e.target.classList.contains('r-satuan')) item.satuan = e.target.value;
+    renderVarianDetail();
+    renderSummary();
+  });
+  document.getElementById('resepTbody').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.r-del'); if(!btn) return;
+    resepItem.items.splice(+btn.dataset.idx,1);
+    renderVarianDetail();
+    renderSummary();
+  });
+  document.getElementById('addBahanResepBtn').addEventListener('click', ()=>{
+    resepItem.items.push({bahan: BAHAN_BAKU[0]?BAHAN_BAKU[0].nama:'', qty:0, satuan: BAHAN_BAKU[0]?BAHAN_BAKU[0].satuan:'gr'});
+    renderVarianDetail();
+    renderSummary();
+  });
+  document.getElementById('saveResepBtn').addEventListener('click', ()=> saveResepVarian(resepItem.varian));
+  document.getElementById('delVarianBtn').addEventListener('click', async ()=>{
+    if(!confirm(`Hapus varian "${resepItem.varian}" beserta resepnya? (langsung terhapus permanen dari database)`)) return;
+    try{ await sb.from('resep').delete().eq('varian', resepItem.varian); }catch(err){ alert('Gagal hapus dari database: '+err.message); }
+    try{ await sb.from('harga_jual').delete().eq('varian', resepItem.varian); }catch(err){}
+    const i = RESEP.findIndex(r=>r.varian===resepItem.varian);
+    RESEP.splice(i,1);
+    delete SELLING[resepItem.varian];
+    selectedVarian = RESEP.length? RESEP[0].varian : null;
+    renderVarianPills();
+    renderVarianDetail();
+    renderSummary();
+  });
+
+  renderSummary();
+}
+
+async function saveResepVarian(varian){
+  const statusEl = document.getElementById('resepSaveStatus');
+  const resepItem = RESEP.find(r=>r.varian===varian);
+  if(!resepItem) return;
+  statusEl.className='save-status'; statusEl.textContent='⏳ Menyimpan…';
+  try{
+    const {error} = await sb.from('resep').upsert({varian: resepItem.varian, items: resepItem.items, updated_at:new Date().toISOString()}, {onConflict:'varian'});
+    if(error) throw error;
+    statusEl.className='save-status ok'; statusEl.textContent='✓ Resep tersimpan.';
+  }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
+}
+
+document.getElementById('addVarianBtn').addEventListener('click', ()=>{
+  const nama = prompt('Nama varian baru (mis. "Vanilla 250 ml"):');
+  if(!nama || !nama.trim()) return;
+  if(RESEP.some(r=>r.varian.toLowerCase()===nama.trim().toLowerCase())){ alert('Varian dengan nama itu sudah ada.'); return; }
+  RESEP.push({varian:nama.trim(), items:[]});
+  selectedVarian = nama.trim();
+  renderVarianPills();
+  renderVarianDetail();
+  renderSummary();
+});
+
+/* ---------------- RENDER: RINGKASAN ---------------- */
+function renderSummary(){
+  const targetMargin = parseFloat(document.getElementById('targetMarginInput').value)||0;
+  const tbody = document.getElementById('summaryTbody');
+
+  tbody.innerHTML = RESEP.map(r=>{
+    const {total} = computeHpp(r);
+    if(SELLING[r.varian]==null){
+      SELLING[r.varian] = targetMargin<100 ? Math.round(total/(1-targetMargin/100)/100)*100 : total;
+    }
+    const jual = SELLING[r.varian];
+    const marginRp = jual-total;
+    const marginPct = jual? Math.round(marginRp/jual*1000)/10 : 0;
+    return `<tr data-varian="${r.varian.replace(/"/g,'&quot;')}">
+      <td data-label="Varian">${r.varian}</td>
+      <td class="num" data-label="HPP/Botol">${rp(total)}</td>
+      <td class="num" data-label="Harga Jual"><input type="number" class="s-jual" value="${jual}" min="0" step="100" style="width:110px;"></td>
+      <td class="num" data-label="Margin (Rp)">${rp(marginRp)}</td>
+      <td class="num" data-label="Margin (%)"><span class="tag-margin ${marginPct>=20?'good':'bad'}">${marginPct}%</span></td>
+    </tr>`;
+  }).join('');
+
+  document.querySelectorAll('.s-jual').forEach(inp=>{
+    inp.addEventListener('input', (e)=>{
+      const tr = e.target.closest('tr');
+      const varian = tr.dataset.varian;
+      SELLING[varian] = parseFloat(e.target.value)||0;
+      renderSummary();
+    });
+  });
+
+  renderChartSummary();
+}
+
+function renderChartSummary(){
+  if(chartSummary) chartSummary.destroy();
+  const labels = RESEP.map(r=>r.varian);
+  const hppData = RESEP.map(r=>computeHpp(r).total);
+  const jualData = RESEP.map(r=>SELLING[r.varian]||0);
+  chartSummary = new Chart(document.getElementById('chartSummary'), {
+    type:'bar',
+    data:{ labels, datasets:[
+      {label:'HPP', data:hppData, backgroundColor:'#B9793C', borderRadius:4},
+      {label:'Harga Jual', data:jualData, backgroundColor:'#2C1D14', borderRadius:4}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top'}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+rp(c.raw)}}},
+      scales:{ x:{ticks:{maxRotation:45}, grid:{display:false}}, y:{ticks:{callback:v=>'Rp'+(v/1000)+'rb'}, grid:{color:'#EEE1CB'}} }
+    }
+  });
+}
+
+document.getElementById('applyMarginBtn').addEventListener('click', ()=>{
+  const targetMargin = parseFloat(document.getElementById('targetMarginInput').value)||0;
+  RESEP.forEach(r=>{
+    const {total} = computeHpp(r);
+    SELLING[r.varian] = targetMargin<100 ? Math.round(total/(1-targetMargin/100)/100)*100 : total;
+  });
+  renderSummary();
+});
+
+async function saveHargaJualAll(){
+  const statusEl = document.getElementById('hargaJualSaveStatus');
+  statusEl.className='save-status'; statusEl.textContent='⏳ Menyimpan…';
+  try{
+    const rows = RESEP.map(r=>({varian:r.varian, harga_jual: SELLING[r.varian]||0, updated_at:new Date().toISOString()}));
+    if(rows.length){
+      const {error} = await sb.from('harga_jual').upsert(rows, {onConflict:'varian'});
+      if(error) throw error;
+    }
+    statusEl.className='save-status ok'; statusEl.textContent='✓ Tersimpan.';
+  }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
+}
+document.getElementById('saveHargaJualBtn').addEventListener('click', saveHargaJualAll);
+
+/* ---------------- SUPABASE: LOAD & SEED ---------------- */
+async function loadAllData(){
+  const syncEl = document.getElementById('syncStatus');
+  syncEl.textContent = '⏳ Memuat data dari Supabase…';
+  try{
+    let {data: bahanRows, error: e1} = await sb.from('bahan_baku').select('*');
+    if(e1) throw e1;
+    if(!bahanRows.length){
+      const seed = DEFAULT_BAHAN_BAKU.map(b=>({nama:b.nama, kemasan:b.kemasan, satuan:b.satuan, harga_kemasan:b.hargaKemasan}));
+      const {error: seedErr} = await sb.from('bahan_baku').insert(seed);
+      if(seedErr) throw seedErr;
+      ({data: bahanRows} = await sb.from('bahan_baku').select('*'));
+    }
+    BAHAN_BAKU = bahanRows.map(b=>({nama:b.nama, kemasan:Number(b.kemasan), satuan:b.satuan, hargaKemasan:Number(b.harga_kemasan)}));
+
+    let {data: resepRows, error: e2} = await sb.from('resep').select('*');
+    if(e2) throw e2;
+    if(!resepRows.length){
+      const seed = DEFAULT_RESEP.map(r=>({varian:r.varian, items:r.items}));
+      const {error: seedErr} = await sb.from('resep').insert(seed);
+      if(seedErr) throw seedErr;
+      ({data: resepRows} = await sb.from('resep').select('*'));
+    }
+    RESEP = resepRows.map(r=>({varian:r.varian, items:r.items||[]}));
+
+    const {data: hjRows, error: e3} = await sb.from('harga_jual').select('*');
+    if(e3) throw e3;
+    SELLING = {};
+    (hjRows||[]).forEach(h=>{ SELLING[h.varian] = Number(h.harga_jual); });
+
+    selectedVarian = RESEP.length? RESEP[0].varian : null;
+    renderBahanTable();
+    renderVarianPills();
+    renderVarianDetail();
+    syncEl.textContent = `✓ ${BAHAN_BAKU.length} bahan baku, ${RESEP.length} varian tersinkron dari Supabase.`;
+  }catch(err){
+    syncEl.textContent = '✕ Gagal memuat dari Supabase: '+err.message;
+  }
+}
+document.getElementById('refreshBtn').addEventListener('click', loadAllData);
+
+/* ---------------- AUTH ---------------- */
+const loginScreen = document.getElementById('loginScreen');
+const dashboardScreen = document.getElementById('dashboardScreen');
+
+async function showDashboard(){
+  loginScreen.style.display='none';
+  dashboardScreen.style.display='block';
+  await loadAllData();
+}
+function showLogin(){
+  loginScreen.style.display='flex';
+  dashboardScreen.style.display='none';
+}
+async function logout(){
+  await sb.auth.signOut();
+  showLogin();
+}
+document.getElementById('logoutBtn').addEventListener('click', logout);
+
+document.getElementById('loginBtn').addEventListener('click', async ()=>{
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent='';
+  if(!email || !password){ errEl.textContent='Isi email dan password.'; return; }
+  const btn = document.getElementById('loginBtn'); btn.disabled=true; btn.textContent='Memproses…';
+  const {error} = await sb.auth.signInWithPassword({email, password});
+  btn.disabled=false; btn.textContent='Masuk';
+  if(error){ errEl.textContent = 'Login gagal: '+error.message; return; }
+  await showDashboard();
+});
+
+/* ---------------- INIT ---------------- */
+(async function init(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){ await showDashboard(); } else { showLogin(); }
+})();
+</script>
+</body>
+</html>
