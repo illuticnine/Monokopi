@@ -112,6 +112,53 @@
     table.resp-stack td.num{text-align:right;}
     table.resp-stack td::before{content:attr(data-label); font-size:11px; color:var(--espresso-soft); font-weight:600;}
   }
+
+  /* ---- Tab Navigasi ---- */
+  .tabs{display:flex; gap:6px; margin-bottom:24px; border-bottom:2px solid var(--line); flex-wrap:wrap;}
+  .tab-btn{
+    font-family:'DM Serif Display',serif; font-size:15px; font-weight:400; padding:10px 16px; border:none; background:none;
+    color:var(--espresso-soft); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; transition:color .15s ease;
+  }
+  .tab-btn:hover{color:var(--espresso);}
+  .tab-btn.active{color:var(--caramel); border-bottom-color:var(--caramel);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* ---- Upload bahan baku ---- */
+  .upload-inline{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .upload-inline .hint{margin:0;}
+
+  /* ---- Pemesanan ---- */
+  .order-form-row{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;}
+  .order-form-row .field{display:flex; flex-direction:column; gap:4px;}
+  .order-form-row .field label{font-size:11.5px; font-weight:600; color:var(--espresso-soft);}
+  .order-form-row input, .order-form-row select{padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-family:'Inter',sans-serif; font-size:13.5px; background:var(--cream);}
+  .order-item-row{display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:10px; padding-bottom:10px; border-bottom:1px dashed var(--line);}
+  .order-total-box{background:var(--caramel-bg); border-radius:10px; padding:14px 18px; margin-top:14px; display:flex; gap:26px; flex-wrap:wrap;}
+  .order-total-box div .lbl{font-size:11px; text-transform:uppercase; color:var(--espresso-soft); font-weight:700;}
+  .order-total-box div .val{font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700;}
+  .order-list-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:10px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+  .order-list-row:last-child{border-bottom:none;}
+  .order-list-row .meta{color:var(--espresso-soft); font-size:11.5px; font-family:'JetBrains Mono',monospace;}
+
+  /* ---- Period selector ---- */
+  .period-row{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:16px;}
+  .period-row button{font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600; padding:6px 12px; border-radius:20px; border:1px solid var(--line); background:var(--white); color:var(--espresso-soft); cursor:pointer;}
+  .period-row button.active{background:var(--espresso); color:var(--cream); border-color:var(--espresso);}
+  .period-row input[type="date"]{padding:6px 10px; border:1px solid var(--line); border-radius:8px; font-family:'Inter',sans-serif; font-size:12.5px;}
+
+  /* ---- Biaya Operasional & Laba ---- */
+  .biaya-add-row{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;}
+  .biaya-add-row .field{display:flex; flex-direction:column; gap:4px;}
+  .biaya-add-row .field label{font-size:11.5px; font-weight:600; color:var(--espresso-soft);}
+  .biaya-add-row input, .biaya-add-row select{padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-family:'Inter',sans-serif; font-size:13.5px; background:var(--cream);}
+  .laba-kpi-row{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px;}
+  @media (max-width:900px){ .laba-kpi-row{grid-template-columns:repeat(2,1fr);} }
+  .laba-kpi{background:var(--white); border:1px solid var(--line); border-radius:10px; padding:14px 16px; box-shadow:var(--shadow);}
+  .laba-kpi .lbl{font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--espresso-soft); font-weight:700;}
+  .laba-kpi .val{font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; margin-top:5px;}
+  .laba-kpi.neg .val{color:var(--rust);}
+  .laba-kpi.pos .val{color:var(--moss);}
 </style>
 </head>
 <body>
@@ -143,13 +190,27 @@
     <button class="btn btn-ghost" id="refreshBtn">Muat Ulang Data</button>
   </div>
 
+  <div class="tabs" id="mainTabs">
+    <button class="tab-btn active" data-tab="bahan">📦 Bahan Baku</button>
+    <button class="tab-btn" data-tab="resep">☕ Resep &amp; Harga Jual</button>
+    <button class="tab-btn" data-tab="pesanan">🧾 Pemesanan</button>
+    <button class="tab-btn" data-tab="rekap">📊 Rekap Penjualan</button>
+    <button class="tab-btn" data-tab="laba">💰 Laba &amp; Biaya Operasional</button>
+  </div>
 
+  <div class="tab-panel active" id="tabBahan">
   <section>
     <div class="sec-head">
       <h2>Harga Bahan Baku</h2>
       <div class="hint">Harga per satuan (gr/ml/pc) dihitung otomatis dari harga per kemasan</div>
     </div>
     <div class="card">
+      <div class="upload-inline" style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px dashed var(--line);">
+        <button class="btn btn-ghost" id="uploadBahanBtn">📤 Upload dari Excel</button>
+        <input type="file" id="bahanFileInput" accept=".xlsx,.xls" hidden>
+        <span class="hint">Format kolom sama seperti Harga_Bahan_Baku.xlsx: Bahan Baku, Kemasan, Satuan, Harga/Kemasan (berurutan). Upload akan menggantikan &amp; langsung menyimpan seluruh daftar.</span>
+      </div>
+      <div class="save-status" id="bahanUploadStatus"></div>
       <div style="overflow-x:auto;">
         <table id="bahanTable">
           <thead><tr><th>Bahan Baku</th><th class="num">Isi Kemasan</th><th>Satuan</th><th class="num">Harga / Kemasan (Rp)</th><th class="num">Harga / Satuan (Rp)</th><th></th></tr></thead>
@@ -163,7 +224,9 @@
       </div>
     </div>
   </section>
+  </div>
 
+  <div class="tab-panel" id="tabResep">
   <section>
     <div class="sec-head"><h2>Resep &amp; HPP per Varian</h2></div>
     <div class="varian-pills" id="varianPills"></div>
@@ -193,6 +256,92 @@
       <div class="chart-box"><canvas id="chartSummary"></canvas></div>
     </div>
   </section>
+  </div>
+
+  <div class="tab-panel" id="tabPesanan">
+  <section>
+    <div class="sec-head"><h2>Catat Pemesanan Baru</h2><div class="hint">HPP &amp; margin otomatis dihitung dari harga saat ini</div></div>
+    <div class="card">
+      <div class="order-form-row">
+        <div class="field"><label>Tanggal</label><input type="date" id="orderTanggal"></div>
+        <div class="field"><label>Nama Pelanggan (opsional)</label><input type="text" id="orderPelanggan" placeholder="mis. Bu Rina"></div>
+      </div>
+      <div id="orderItemsWrap"></div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="addOrderItemBtn">+ Tambah Item</button>
+      </div>
+      <div class="order-total-box">
+        <div><div class="lbl">Total Omzet</div><div class="val" id="orderTotalOmzet">Rp0</div></div>
+        <div><div class="lbl">Total HPP</div><div class="val" id="orderTotalHpp">Rp0</div></div>
+        <div><div class="lbl">Total Margin</div><div class="val" id="orderTotalMargin">Rp0</div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="saveOrderBtn" style="background:var(--moss);">💾 Simpan Pesanan</button>
+        <span class="save-status" id="orderSaveStatus"></span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Pesanan Terbaru</h2></div>
+    <div class="card"><div id="orderList"><div class="hint">Memuat…</div></div></div>
+  </section>
+  </div>
+
+  <div class="tab-panel" id="tabRekap">
+  <section>
+    <div class="sec-head"><h2>Rekap Penjualan</h2></div>
+    <div class="period-row" id="rekapPeriodRow"></div>
+    <div class="card">
+      <div class="laba-kpi-row" id="rekapKpiRow"></div>
+      <div style="overflow-x:auto;">
+        <table class="resp-stack" id="rekapTable">
+          <thead><tr><th>Varian</th><th class="num">Qty Terjual</th><th class="num">Omzet</th><th class="num">HPP</th><th class="num">Margin</th></tr></thead>
+          <tbody id="rekapTbody"></tbody>
+        </table>
+      </div>
+      <div class="chart-box"><canvas id="chartRekap"></canvas></div>
+    </div>
+  </section>
+  </div>
+
+  <div class="tab-panel" id="tabLaba">
+  <section>
+    <div class="sec-head"><h2>Laba Bersih</h2></div>
+    <div class="period-row" id="labaPeriodRow"></div>
+    <div class="card">
+      <div class="laba-kpi-row" id="labaKpiRow"></div>
+      <div class="hint" id="labaBiayaBreakdownHint" style="margin-bottom:8px;"></div>
+      <div id="labaBiayaBreakdown"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Biaya Operasional</h2></div>
+    <div class="card">
+      <div class="biaya-add-row">
+        <div class="field"><label>Nama Biaya</label><input type="text" id="biayaNamaInput" placeholder="mis. Gaji Karyawan" style="width:180px;"></div>
+        <div class="field"><label>Kategori</label><input type="text" id="biayaKategoriInput" placeholder="mis. SDM" style="width:120px;"></div>
+        <div class="field"><label>Tipe</label>
+          <select id="biayaTipeInput">
+            <option value="bulanan">Bulanan (rutin)</option>
+            <option value="sekali">Sekali (tanggal tertentu)</option>
+          </select>
+        </div>
+        <div class="field"><label>Nominal (Rp)</label><input type="number" id="biayaNominalInput" min="0" style="width:130px;"></div>
+        <div class="field" id="biayaTanggalField"><label>Tanggal</label><input type="date" id="biayaTanggalInput"></div>
+        <button class="btn btn-primary" id="addBiayaBtn">+ Tambah Biaya</button>
+      </div>
+      <div class="save-status" id="biayaAddStatus"></div>
+      <div style="overflow-x:auto;">
+        <table class="resp-stack" id="biayaTable">
+          <thead><tr><th>Nama</th><th>Kategori</th><th>Tipe</th><th class="num">Nominal</th><th>Tanggal</th><th></th></tr></thead>
+          <tbody id="biayaTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  </div>
 
   <footer id="footerNote">Kalkulator HPP internal — tersambung ke Supabase. Semua perubahan tersimpan permanen setelah menekan tombol Simpan di masing-masing bagian.</footer>
 </div>
@@ -1171,6 +1320,48 @@ async function saveHargaJualAll(){
 document.getElementById('saveHargaJualBtn').addEventListener('click', saveHargaJualAll);
 
 /* ---------------- SUPABASE: LOAD & SEED ---------------- */
+async function fetchAllRows(table){
+  let all=[], from=0; const size=1000;
+  while(true){
+    const {data, error} = await sb.from(table).select('*').range(from, from+size-1);
+    if(error) throw error;
+    all = all.concat(data);
+    if(!data.length || data.length<size) break;
+    from += size;
+  }
+  return all;
+}
+
+let ORDERS = [];
+let BIAYA_OPS = [];
+let orderItemsDraft = [];
+let chartRekap = null;
+
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function isoOf(d){ return d.toISOString().slice(0,10); }
+function computePeriodRange(mode, customStart, customEnd){
+  const today = new Date();
+  if(mode==='7hari'){ const s=new Date(today); s.setDate(s.getDate()-6); return {start:isoOf(s), end:todayISO()}; }
+  if(mode==='30hari'){ const s=new Date(today); s.setDate(s.getDate()-29); return {start:isoOf(s), end:todayISO()}; }
+  if(mode==='bulanIni'){ const s=new Date(today.getFullYear(), today.getMonth(), 1); return {start:isoOf(s), end:todayISO()}; }
+  if(mode==='tahunIni'){ const s=new Date(today.getFullYear(),0,1); return {start:isoOf(s), end:todayISO()}; }
+  return {start:customStart||todayISO(), end:customEnd||todayISO()};
+}
+let rekapPeriod = {mode:'7hari', ...computePeriodRange('7hari')};
+let labaPeriod = {mode:'bulanIni', ...computePeriodRange('bulanIni')};
+
+async function loadOrders(){
+  const rows = await fetchAllRows('orders');
+  ORDERS = rows.map(r=>({id:r.id, tanggal:r.tanggal, pelanggan:r.pelanggan||'', items:r.items||[],
+    total_omzet:Number(r.total_omzet), total_hpp:Number(r.total_hpp), total_margin:Number(r.total_margin)}));
+  ORDERS.sort((a,b)=> b.tanggal.localeCompare(a.tanggal) || b.id-a.id);
+}
+async function loadBiayaOps(){
+  const {data, error} = await sb.from('biaya_operasional').select('*').order('created_at', {ascending:false});
+  if(error) throw error;
+  BIAYA_OPS = data.map(r=>({id:r.id, nama:r.nama, kategori:r.kategori||'', tipe:r.tipe, nominal:Number(r.nominal), tanggal:r.tanggal}));
+}
+
 async function loadAllData(){
   const syncEl = document.getElementById('syncStatus');
   syncEl.textContent = '⏳ Memuat data dari Supabase…';
@@ -1200,16 +1391,387 @@ async function loadAllData(){
     SELLING = {};
     (hjRows||[]).forEach(h=>{ SELLING[h.varian] = Number(h.harga_jual); });
 
+    await loadOrders();
+    await loadBiayaOps();
+
     selectedVarian = RESEP.length? RESEP[0].varian : null;
     renderBahanTable();
     renderVarianPills();
     renderVarianDetail();
-    syncEl.textContent = `✓ ${BAHAN_BAKU.length} bahan baku, ${RESEP.length} varian tersinkron dari Supabase.`;
+    document.getElementById('orderTanggal').value = todayISO();
+    orderItemsDraft = [];
+    renderOrderItems();
+    renderOrderList();
+    renderRekapPeriodRow();
+    renderRekap();
+    renderBiayaTable();
+    renderLabaPeriodRow();
+    renderLaba();
+
+    syncEl.textContent = `✓ ${BAHAN_BAKU.length} bahan baku, ${RESEP.length} varian, ${ORDERS.length} pesanan tersinkron dari Supabase.`;
   }catch(err){
     syncEl.textContent = '✕ Gagal memuat dari Supabase: '+err.message;
   }
 }
 document.getElementById('refreshBtn').addEventListener('click', loadAllData);
+
+/* ---------------- UPLOAD BAHAN BAKU DARI EXCEL ---------------- */
+function parseBahanBakuWorkbook(workbook){
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:null});
+  let headerRowIdx=-1, colBahan=-1;
+  for(let i=0;i<Math.min(rows.length,10);i++){
+    const row = rows[i]||[];
+    for(let c=0;c<row.length;c++){
+      if(String(row[c]||'').trim().toLowerCase()==='bahan baku'){ headerRowIdx=i; colBahan=c; break; }
+    }
+    if(headerRowIdx!==-1) break;
+  }
+  if(headerRowIdx===-1) return {records:[], warnings:['Header "Bahan Baku" tidak ditemukan di sheet ini.']};
+  const records = [];
+  for(let i=headerRowIdx+1;i<rows.length;i++){
+    const row = rows[i]; if(!row) continue;
+    const nama = row[colBahan];
+    if(nama===null||nama===undefined||String(nama).trim()==='') continue;
+    const kemasan = Number(row[colBahan+1])||0;
+    const satuan = String(row[colBahan+2]||'').trim();
+    const harga = Number(row[colBahan+3])||0;
+    records.push({nama:String(nama).trim(), kemasan, satuan, hargaKemasan:harga});
+  }
+  return {records, warnings:[]};
+}
+document.getElementById('uploadBahanBtn').addEventListener('click', ()=> document.getElementById('bahanFileInput').click());
+document.getElementById('bahanFileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const statusEl = document.getElementById('bahanUploadStatus');
+  statusEl.className='save-status'; statusEl.textContent='⏳ Membaca '+file.name+'…';
+  const reader = new FileReader();
+  reader.onload = async (ev)=>{
+    try{
+      const workbook = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
+      const {records, warnings} = parseBahanBakuWorkbook(workbook);
+      if(!records.length){
+        statusEl.className='save-status err';
+        statusEl.textContent='✕ Tidak ada data valid. Pastikan format kolom: Bahan Baku, Kemasan, Satuan, Harga/Kemasan (berurutan).';
+        return;
+      }
+      BAHAN_BAKU = records;
+      renderBahanTable();
+      await saveBahanBaku();
+      statusEl.className='save-status ok';
+      statusEl.textContent = `✓ ${records.length} bahan baku dimuat dari "${file.name}" dan tersimpan.` + (warnings.length? ' '+warnings.join(' '):'');
+      renderVarianDetail();
+      renderSummary();
+    }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Kesalahan: '+err.message; }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value='';
+});
+
+/* ---------------- PEMESANAN ---------------- */
+function renderOrderItems(){
+  const wrap = document.getElementById('orderItemsWrap');
+  if(!orderItemsDraft.length){ wrap.innerHTML = '<div class="hint">Belum ada item. Klik "+ Tambah Item".</div>'; updateOrderTotals(); return; }
+  wrap.innerHTML = orderItemsDraft.map((it,idx)=>{
+    const resepItem = RESEP.find(r=>r.varian===it.varian);
+    const hpp = resepItem? computeHpp(resepItem).total : 0;
+    const subtotal = it.qty*it.hargaJual;
+    return `<div class="order-item-row" data-idx="${idx}">
+      <div class="field"><label>Varian</label>
+        <select class="oi-varian" style="min-width:180px;">${RESEP.map(r=>`<option value="${r.varian.replace(/"/g,'&quot;')}" ${r.varian===it.varian?'selected':''}>${r.varian}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Qty</label><input type="number" class="oi-qty" value="${it.qty}" min="1" style="width:70px;"></div>
+      <div class="field"><label>Harga Jual/pcs</label><input type="number" class="oi-harga" value="${it.hargaJual}" min="0" style="width:110px;"></div>
+      <div class="field"><label>HPP/pcs</label><div style="padding:9px 0; font-family:'JetBrains Mono',monospace;">${rp(hpp)}</div></div>
+      <div class="field"><label>Subtotal</label><div class="oi-subtotal" style="padding:9px 0; font-family:'JetBrains Mono',monospace; font-weight:700;">${rp(subtotal)}</div></div>
+      <button class="del-btn oi-del" data-idx="${idx}">✕</button>
+    </div>`;
+  }).join('');
+  updateOrderTotals();
+}
+function updateOrderTotals(){
+  let omzet=0, hppTotal=0;
+  orderItemsDraft.forEach(it=>{
+    const resepItem = RESEP.find(r=>r.varian===it.varian);
+    const hpp = resepItem? computeHpp(resepItem).total : 0;
+    omzet += it.qty*it.hargaJual;
+    hppTotal += it.qty*hpp;
+  });
+  document.getElementById('orderTotalOmzet').textContent = rp(omzet);
+  document.getElementById('orderTotalHpp').textContent = rp(hppTotal);
+  document.getElementById('orderTotalMargin').textContent = rp(omzet-hppTotal);
+}
+document.getElementById('addOrderItemBtn').addEventListener('click', ()=>{
+  const firstVarian = RESEP[0]?.varian || '';
+  orderItemsDraft.push({varian:firstVarian, qty:1, hargaJual: SELLING[firstVarian]||0});
+  renderOrderItems();
+});
+document.getElementById('orderItemsWrap').addEventListener('change', (e)=>{
+  const row = e.target.closest('.order-item-row'); if(!row) return;
+  const idx = +row.dataset.idx;
+  if(e.target.classList.contains('oi-varian')){
+    orderItemsDraft[idx].varian = e.target.value;
+    orderItemsDraft[idx].hargaJual = SELLING[e.target.value] ?? orderItemsDraft[idx].hargaJual;
+    renderOrderItems();
+  }
+});
+document.getElementById('orderItemsWrap').addEventListener('input', (e)=>{
+  const row = e.target.closest('.order-item-row'); if(!row) return;
+  const idx = +row.dataset.idx;
+  if(e.target.classList.contains('oi-qty')) orderItemsDraft[idx].qty = Math.max(1, parseFloat(e.target.value)||1);
+  else if(e.target.classList.contains('oi-harga')) orderItemsDraft[idx].hargaJual = parseFloat(e.target.value)||0;
+  else return;
+  row.querySelector('.oi-subtotal').textContent = rp(orderItemsDraft[idx].qty*orderItemsDraft[idx].hargaJual);
+  updateOrderTotals();
+});
+document.getElementById('orderItemsWrap').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.oi-del'); if(!btn) return;
+  orderItemsDraft.splice(+btn.dataset.idx,1);
+  renderOrderItems();
+});
+
+document.getElementById('saveOrderBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('orderSaveStatus');
+  if(!orderItemsDraft.length){ statusEl.className='save-status err'; statusEl.textContent='Tambah minimal 1 item dulu.'; return; }
+  const tanggal = document.getElementById('orderTanggal').value || todayISO();
+  const pelanggan = document.getElementById('orderPelanggan').value.trim();
+  const items = orderItemsDraft.map(it=>{
+    const resepItem = RESEP.find(r=>r.varian===it.varian);
+    const hppPerUnit = resepItem? computeHpp(resepItem).total : 0;
+    return {varian:it.varian, qty:it.qty, hargaJual:it.hargaJual, hppPerUnit};
+  });
+  const total_omzet = items.reduce((s,i)=>s+i.qty*i.hargaJual,0);
+  const total_hpp = items.reduce((s,i)=>s+i.qty*i.hppPerUnit,0);
+  const total_margin = total_omzet-total_hpp;
+  statusEl.className='save-status'; statusEl.textContent='⏳ Menyimpan…';
+  try{
+    const {error} = await sb.from('orders').insert({tanggal, pelanggan, items, total_omzet, total_hpp, total_margin});
+    if(error) throw error;
+    statusEl.className='save-status ok'; statusEl.textContent='✓ Pesanan tersimpan.';
+    orderItemsDraft = [];
+    document.getElementById('orderPelanggan').value='';
+    renderOrderItems();
+    await loadOrders();
+    renderOrderList();
+    renderRekap();
+    renderLaba();
+  }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
+});
+
+function renderOrderList(){
+  const el = document.getElementById('orderList');
+  if(!ORDERS.length){ el.innerHTML = '<div class="hint">Belum ada pesanan tercatat.</div>'; return; }
+  el.innerHTML = ORDERS.slice(0,15).map(o=>`
+    <div class="order-list-row">
+      <div>
+        <div><b>${o.tanggal}</b>${o.pelanggan? ' · '+o.pelanggan : ''}</div>
+        <div class="meta">${o.items.map(i=>i.varian+' ×'+i.qty).join(', ')}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:'JetBrains Mono',monospace; font-weight:700;">${rp(o.total_omzet)}</div>
+        <div class="meta">margin ${rp(o.total_margin)}</div>
+        <button class="del-btn order-del" data-id="${o.id}">✕ Hapus</button>
+      </div>
+    </div>`).join('');
+}
+document.getElementById('orderList').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('.order-del'); if(!btn) return;
+  if(!confirm('Hapus pesanan ini secara permanen?')) return;
+  try{
+    await sb.from('orders').delete().eq('id', +btn.dataset.id);
+    await loadOrders();
+    renderOrderList();
+    renderRekap();
+    renderLaba();
+  }catch(err){ alert('Gagal hapus: '+err.message); }
+});
+
+/* ---------------- REKAP PENJUALAN ---------------- */
+function renderRekapPeriodRow(){
+  const el = document.getElementById('rekapPeriodRow');
+  el.innerHTML = `
+    <button data-mode="7hari" class="${rekapPeriod.mode==='7hari'?'active':''}">7 Hari</button>
+    <button data-mode="30hari" class="${rekapPeriod.mode==='30hari'?'active':''}">30 Hari</button>
+    <button data-mode="bulanIni" class="${rekapPeriod.mode==='bulanIni'?'active':''}">Bulan Ini</button>
+    <button data-mode="tahunIni" class="${rekapPeriod.mode==='tahunIni'?'active':''}">Tahun Ini</button>
+    <button data-mode="custom" class="${rekapPeriod.mode==='custom'?'active':''}">Custom</button>
+    ${rekapPeriod.mode==='custom'? `<input type="date" id="rekapStartDate" value="${rekapPeriod.start||''}"> s/d <input type="date" id="rekapEndDate" value="${rekapPeriod.end||''}">` : ''}
+  `;
+  el.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+    rekapPeriod.mode = b.dataset.mode;
+    if(rekapPeriod.mode!=='custom'){ const r=computePeriodRange(rekapPeriod.mode); rekapPeriod.start=r.start; rekapPeriod.end=r.end; }
+    renderRekapPeriodRow();
+    renderRekap();
+  }));
+  if(rekapPeriod.mode==='custom'){
+    document.getElementById('rekapStartDate').addEventListener('change', e=>{ rekapPeriod.start=e.target.value; renderRekap(); });
+    document.getElementById('rekapEndDate').addEventListener('change', e=>{ rekapPeriod.end=e.target.value; renderRekap(); });
+  }
+}
+function renderRekap(){
+  const {start,end} = rekapPeriod;
+  const filtered = ORDERS.filter(o=> o.tanggal>=start && o.tanggal<=end);
+  const perVarian = {};
+  let totalOmzet=0, totalHpp=0, totalMargin=0, totalQty=0;
+  filtered.forEach(o=>{
+    o.items.forEach(it=>{
+      if(!perVarian[it.varian]) perVarian[it.varian]={varian:it.varian, qty:0, omzet:0, hpp:0, margin:0};
+      const omzet = it.qty*it.hargaJual, hpp=it.qty*it.hppPerUnit;
+      perVarian[it.varian].qty+=it.qty; perVarian[it.varian].omzet+=omzet;
+      perVarian[it.varian].hpp+=hpp; perVarian[it.varian].margin+=(omzet-hpp);
+      totalQty+=it.qty; totalOmzet+=omzet; totalHpp+=hpp; totalMargin+=(omzet-hpp);
+    });
+  });
+  const list = Object.values(perVarian).sort((a,b)=>b.omzet-a.omzet);
+
+  document.getElementById('rekapKpiRow').innerHTML = `
+    <div class="laba-kpi"><div class="lbl">Jumlah Pesanan</div><div class="val">${filtered.length}</div></div>
+    <div class="laba-kpi"><div class="lbl">Qty Terjual</div><div class="val">${totalQty}</div></div>
+    <div class="laba-kpi"><div class="lbl">Omzet</div><div class="val">${rp(totalOmzet)}</div></div>
+    <div class="laba-kpi"><div class="lbl">HPP</div><div class="val">${rp(totalHpp)}</div></div>
+    <div class="laba-kpi pos"><div class="lbl">Margin Kotor</div><div class="val">${rp(totalMargin)}</div></div>
+  `;
+  document.getElementById('rekapTbody').innerHTML = list.length? list.map(v=>`
+    <tr><td data-label="Varian">${v.varian}</td><td class="num" data-label="Qty">${v.qty}</td>
+    <td class="num" data-label="Omzet">${rp(v.omzet)}</td><td class="num" data-label="HPP">${rp(v.hpp)}</td>
+    <td class="num" data-label="Margin">${rp(v.margin)}</td></tr>`).join('')
+    : `<tr><td colspan="5" style="text-align:center; color:var(--espresso-soft);">Tidak ada pesanan pada periode ini.</td></tr>`;
+
+  const dailyMap = {};
+  filtered.forEach(o=>{ dailyMap[o.tanggal] = (dailyMap[o.tanggal]||0)+o.total_omzet; });
+  const days = Object.keys(dailyMap).sort();
+  if(chartRekap) chartRekap.destroy();
+  chartRekap = new Chart(document.getElementById('chartRekap'), {
+    type:'bar',
+    data:{ labels:days, datasets:[{label:'Omzet', data:days.map(d=>dailyMap[d]), backgroundColor:'#B9793C', borderRadius:4}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>rp(c.raw)}}},
+      scales:{ x:{grid:{display:false}}, y:{ticks:{callback:v=>'Rp'+Math.round(v/1000)+'rb'}, grid:{color:'#EEE1CB'}} } }
+  });
+}
+
+/* ---------------- LABA & BIAYA OPERASIONAL ---------------- */
+function renderLabaPeriodRow(){
+  const el = document.getElementById('labaPeriodRow');
+  el.innerHTML = `
+    <button data-mode="7hari" class="${labaPeriod.mode==='7hari'?'active':''}">7 Hari</button>
+    <button data-mode="30hari" class="${labaPeriod.mode==='30hari'?'active':''}">30 Hari</button>
+    <button data-mode="bulanIni" class="${labaPeriod.mode==='bulanIni'?'active':''}">Bulan Ini</button>
+    <button data-mode="tahunIni" class="${labaPeriod.mode==='tahunIni'?'active':''}">Tahun Ini</button>
+    <button data-mode="custom" class="${labaPeriod.mode==='custom'?'active':''}">Custom</button>
+    ${labaPeriod.mode==='custom'? `<input type="date" id="labaStartDate" value="${labaPeriod.start||''}"> s/d <input type="date" id="labaEndDate" value="${labaPeriod.end||''}">` : ''}
+  `;
+  el.querySelectorAll('button').forEach(b=>b.addEventListener('click', ()=>{
+    labaPeriod.mode = b.dataset.mode;
+    if(labaPeriod.mode!=='custom'){ const r=computePeriodRange(labaPeriod.mode); labaPeriod.start=r.start; labaPeriod.end=r.end; }
+    renderLabaPeriodRow();
+    renderLaba();
+  }));
+  if(labaPeriod.mode==='custom'){
+    document.getElementById('labaStartDate').addEventListener('change', e=>{ labaPeriod.start=e.target.value; renderLaba(); });
+    document.getElementById('labaEndDate').addEventListener('change', e=>{ labaPeriod.end=e.target.value; renderLaba(); });
+  }
+}
+function computeBiayaForPeriod(start,end){
+  const startDate = new Date(start+'T00:00:00');
+  const endDate = new Date(end+'T00:00:00');
+  const days = Math.max(1, Math.round((endDate-startDate)/86400000)+1);
+  let total = 0;
+  const breakdown = [];
+  BIAYA_OPS.forEach(b=>{
+    if(b.tipe==='sekali'){
+      if(b.tanggal && b.tanggal>=start && b.tanggal<=end){ total+=b.nominal; breakdown.push({...b, applied:b.nominal}); }
+    } else {
+      const prorated = b.nominal/30*days;
+      total += prorated;
+      breakdown.push({...b, applied:prorated});
+    }
+  });
+  return {total, breakdown, days};
+}
+function renderLaba(){
+  const {start,end} = labaPeriod;
+  const filtered = ORDERS.filter(o=> o.tanggal>=start && o.tanggal<=end);
+  let omzet=0, hpp=0;
+  filtered.forEach(o=>{ omzet+=o.total_omzet; hpp+=o.total_hpp; });
+  const labaKotor = omzet-hpp;
+  const {total:biayaTotal, breakdown, days} = computeBiayaForPeriod(start,end);
+  const labaBersih = labaKotor-biayaTotal;
+
+  document.getElementById('labaKpiRow').innerHTML = `
+    <div class="laba-kpi"><div class="lbl">Omzet</div><div class="val">${rp(omzet)}</div></div>
+    <div class="laba-kpi"><div class="lbl">HPP</div><div class="val">${rp(hpp)}</div></div>
+    <div class="laba-kpi pos"><div class="lbl">Laba Kotor</div><div class="val">${rp(labaKotor)}</div></div>
+    <div class="laba-kpi neg"><div class="lbl">Biaya Operasional</div><div class="val">${rp(biayaTotal)}</div></div>
+    <div class="laba-kpi ${labaBersih>=0?'pos':'neg'}"><div class="lbl">Laba Bersih</div><div class="val">${rp(labaBersih)}</div></div>
+  `;
+  document.getElementById('labaBiayaBreakdownHint').textContent =
+    `Rincian biaya operasional untuk periode ${start} s/d ${end} (${days} hari). Biaya bulanan diprorata: nominal ÷ 30 × jumlah hari dalam periode.`;
+  document.getElementById('labaBiayaBreakdown').innerHTML = breakdown.length? `
+    <table class="resp-stack"><thead><tr><th>Nama</th><th>Tipe</th><th class="num">Nominal Asli</th><th class="num">Diterapkan (periode ini)</th></tr></thead>
+    <tbody>${breakdown.map(b=>`<tr><td data-label="Nama">${b.nama}</td><td data-label="Tipe">${b.tipe==='bulanan'?'Bulanan':'Sekali ('+b.tanggal+')'}</td>
+    <td class="num" data-label="Nominal">${rp(b.nominal)}</td><td class="num" data-label="Diterapkan">${rp(b.applied)}</td></tr>`).join('')}</tbody></table>
+  ` : '<div class="hint">Belum ada biaya operasional tercatat.</div>';
+}
+
+function renderBiayaTable(){
+  const tbody = document.getElementById('biayaTbody');
+  tbody.innerHTML = BIAYA_OPS.length? BIAYA_OPS.map(b=>`
+    <tr><td data-label="Nama">${b.nama}</td><td data-label="Kategori">${b.kategori||'-'}</td>
+    <td data-label="Tipe">${b.tipe==='bulanan'?'Bulanan':'Sekali'}</td>
+    <td class="num" data-label="Nominal">${rp(b.nominal)}</td>
+    <td data-label="Tanggal">${b.tanggal||'-'}</td>
+    <td><button class="del-btn biaya-del" data-id="${b.id}">✕</button></td></tr>`).join('')
+    : `<tr><td colspan="6" style="text-align:center; color:var(--espresso-soft);">Belum ada biaya operasional.</td></tr>`;
+}
+document.getElementById('biayaTbody').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('.biaya-del'); if(!btn) return;
+  if(!confirm('Hapus biaya ini?')) return;
+  try{
+    await sb.from('biaya_operasional').delete().eq('id', +btn.dataset.id);
+    await loadBiayaOps();
+    renderBiayaTable();
+    renderLaba();
+  }catch(err){ alert('Gagal hapus: '+err.message); }
+});
+document.getElementById('biayaTipeInput').addEventListener('change', (e)=>{
+  document.getElementById('biayaTanggalField').style.display = e.target.value==='sekali'? 'flex':'none';
+});
+document.getElementById('addBiayaBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('biayaAddStatus');
+  const nama = document.getElementById('biayaNamaInput').value.trim();
+  const kategori = document.getElementById('biayaKategoriInput').value.trim();
+  const tipe = document.getElementById('biayaTipeInput').value;
+  const nominal = parseFloat(document.getElementById('biayaNominalInput').value)||0;
+  const tanggal = document.getElementById('biayaTanggalInput').value || null;
+  statusEl.className='save-status'; statusEl.textContent='';
+  if(!nama){ statusEl.className='save-status err'; statusEl.textContent='Isi nama biaya dulu.'; return; }
+  if(tipe==='sekali' && !tanggal){ statusEl.className='save-status err'; statusEl.textContent='Isi tanggal untuk biaya bertipe sekali.'; return; }
+  statusEl.textContent='⏳ Menyimpan…';
+  try{
+    const {error} = await sb.from('biaya_operasional').insert({nama, kategori, tipe, nominal, tanggal: tipe==='sekali'?tanggal:null});
+    if(error) throw error;
+    statusEl.className='save-status ok'; statusEl.textContent='✓ Tersimpan.';
+    document.getElementById('biayaNamaInput').value='';
+    document.getElementById('biayaKategoriInput').value='';
+    document.getElementById('biayaNominalInput').value='';
+    document.getElementById('biayaTanggalInput').value='';
+    await loadBiayaOps();
+    renderBiayaTable();
+    renderLaba();
+  }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
+});
+
+/* ---------------- TAB NAVIGASI ---------------- */
+document.getElementById('mainTabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.tab-btn'); if(!btn) return;
+  const target = btn.dataset.tab;
+  const idMap = {bahan:'tabBahan', resep:'tabResep', pesanan:'tabPesanan', rekap:'tabRekap', laba:'tabLaba'};
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b===btn));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id===idMap[target]));
+  if(target==='resep') requestAnimationFrame(()=> chartSummary && chartSummary.resize());
+  if(target==='rekap') requestAnimationFrame(()=> chartRekap && chartRekap.resize());
+  window.scrollTo({top:0, behavior:'smooth'});
+});
 
 /* ---------------- AUTH ---------------- */
 const loginScreen = document.getElementById('loginScreen');
