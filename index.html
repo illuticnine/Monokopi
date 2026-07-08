@@ -237,7 +237,15 @@
 
   <div class="tab-panel" id="tabResep">
   <section>
-    <div class="sec-head"><h2>Resep &amp; HPP per Varian</h2></div>
+    <div class="sec-head">
+      <h2>Resep &amp; HPP per Varian</h2>
+      <div class="upload-inline">
+        <button class="btn btn-ghost" id="uploadResepBtn" style="color:var(--brand-cream); border-color:rgba(239,226,186,0.4);">📤 Upload Resep dari Excel</button>
+        <input type="file" id="resepFileInput" accept=".xlsx,.xls" hidden>
+      </div>
+    </div>
+    <div class="hint" style="margin:-10px 0 14px; color:var(--brand-cream-muted);">Format sama seperti Resep.xlsx: tiap sheet = 1 varian, kolom Bahan/Jumlah/Satuan. Varian yang sudah ada akan diperbarui, varian baru otomatis ditambahkan (varian lain yang tidak ada di file tidak akan terhapus).</div>
+    <div class="save-status" id="resepUploadStatus"></div>
     <div class="varian-pills" id="varianPills"></div>
     <div class="card" id="varianDetailCard"></div>
     <div class="btn-row">
@@ -1509,6 +1517,78 @@ document.getElementById('bahanFileInput').addEventListener('change', (e)=>{
       statusEl.textContent = `✓ ${records.length} bahan baku dimuat dari "${file.name}" dan tersimpan.` + (warnings.length? ' '+warnings.join(' '):'');
       renderVarianDetail();
       renderSummary();
+    }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Kesalahan: '+err.message; }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value='';
+});
+
+/* ---------------- UPLOAD RESEP DARI EXCEL ---------------- */
+function formatVarianName(raw){
+  return String(raw||'').trim().split(/\s+/).filter(Boolean).map(w=>
+    w.toLowerCase()==='ml' ? 'ml' : (w.charAt(0).toUpperCase()+w.slice(1).toLowerCase())
+  ).join(' ');
+}
+function parseResepWorkbook(workbook){
+  const records = [], warnings = [];
+  workbook.SheetNames.forEach(sheetName=>{
+    const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], {header:1, raw:true, defval:null});
+    let headerRowIdx=-1, colJumlah=-1;
+    for(let i=0;i<Math.min(rows.length,10);i++){
+      const row = rows[i]||[];
+      for(let c=0;c<row.length;c++){
+        if(String(row[c]||'').trim().toLowerCase()==='jumlah'){ headerRowIdx=i; colJumlah=c; break; }
+      }
+      if(headerRowIdx!==-1) break;
+    }
+    if(headerRowIdx===-1){ warnings.push(`Sheet "${sheetName}" dilewati (kolom "Jumlah" tidak ditemukan).`); return; }
+    const colBahan = colJumlah-1, colSatuan = colJumlah+1;
+    if(colBahan<0){ warnings.push(`Sheet "${sheetName}" dilewati (struktur kolom tidak sesuai).`); return; }
+    const items = [];
+    for(let i=headerRowIdx+1;i<rows.length;i++){
+      const row = rows[i]; if(!row) continue;
+      const bahan = row[colBahan];
+      if(bahan===null||bahan===undefined||String(bahan).trim()==='') continue;
+      const qty = Number(row[colJumlah])||0;
+      const satuan = String(row[colSatuan]||'').trim();
+      items.push({bahan:String(bahan).trim(), qty, satuan});
+    }
+    if(!items.length){ warnings.push(`Sheet "${sheetName}" tidak memiliki baris resep yang valid.`); return; }
+    records.push({varian: formatVarianName(sheetName), items});
+  });
+  return {records, warnings};
+}
+document.getElementById('uploadResepBtn').addEventListener('click', ()=> document.getElementById('resepFileInput').click());
+document.getElementById('resepFileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const statusEl = document.getElementById('resepUploadStatus');
+  statusEl.className='save-status'; statusEl.textContent='⏳ Membaca '+file.name+'…';
+  const reader = new FileReader();
+  reader.onload = async (ev)=>{
+    try{
+      const workbook = XLSX.read(new Uint8Array(ev.target.result), {type:'array', cellDates:true});
+      const {records, warnings} = parseResepWorkbook(workbook);
+      if(!records.length){
+        statusEl.className='save-status err';
+        statusEl.textContent='✕ Tidak ada resep valid ditemukan. Pastikan format kolom Bahan/Jumlah/Satuan sesuai Resep.xlsx.';
+        return;
+      }
+      statusEl.textContent = '⏳ Menyimpan '+records.length+' varian…';
+      const rows = records.map(r=>({varian:r.varian, items:r.items, updated_at:new Date().toISOString()}));
+      const {error} = await sb.from('resep').upsert(rows, {onConflict:'varian'});
+      if(error) throw error;
+      // Perbarui state lokal: timpa varian yang sudah ada, tambahkan yang baru (tidak menghapus varian lain)
+      records.forEach(r=>{
+        const idx = RESEP.findIndex(x=>x.varian===r.varian);
+        if(idx>=0) RESEP[idx] = {varian:r.varian, items:r.items};
+        else RESEP.push({varian:r.varian, items:r.items});
+      });
+      selectedVarian = records[0].varian;
+      renderVarianPills();
+      renderVarianDetail();
+      renderSummary();
+      statusEl.className='save-status ok';
+      statusEl.textContent = `✓ ${records.length} varian dimuat dari "${file.name}" dan tersimpan.` + (warnings.length? ' '+warnings.join(' '):'');
     }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Kesalahan: '+err.message; }
   };
   reader.readAsArrayBuffer(file);
