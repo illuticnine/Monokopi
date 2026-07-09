@@ -301,6 +301,11 @@
 
   <section>
     <div class="sec-head"><h2>Pesanan Terbaru</h2></div>
+    <div class="period-row" id="orderFilterRow">
+      <input type="date" id="orderFilterStart"> <span style="color:var(--brand-cream-muted); font-size:12.5px;">s/d</span> <input type="date" id="orderFilterEnd">
+      <button id="orderFilterBtn">Cari</button>
+      <button id="orderFilterResetBtn">Reset</button>
+    </div>
     <div class="card"><div id="orderList"><div class="hint">Memuat…</div></div></div>
   </section>
   </div>
@@ -345,14 +350,21 @@
             <option value="sekali">Sekali (tanggal tertentu)</option>
           </select>
         </div>
+        <div class="field"><label>Sumber Dana</label>
+          <select id="biayaSumberInput">
+            <option value="laba">💚 Dana Laba/Operasional</option>
+            <option value="restock">⚠️ Dana Restock (HPP)</option>
+          </select>
+        </div>
         <div class="field"><label>Nominal (Rp)</label><input type="number" id="biayaNominalInput" min="0" style="width:130px;"></div>
         <div class="field" id="biayaTanggalField"><label>Tanggal</label><input type="date" id="biayaTanggalInput"></div>
         <button class="btn btn-primary" id="addBiayaBtn">+ Tambah Biaya</button>
       </div>
+      <div class="hint" style="margin-bottom:10px;">"Dana Laba/Operasional" = pola sehat (biaya dibayar dari untung). "Dana Restock (HPP)" = biaya ini terpaksa memakai uang yang seharusnya untuk beli bahan baku lagi — kalau sering muncul, itu tanda arus kas perlu dibenahi.</div>
       <div class="save-status" id="biayaAddStatus"></div>
       <div style="overflow-x:auto;">
         <table class="resp-stack" id="biayaTable">
-          <thead><tr><th>Nama</th><th>Kategori</th><th>Tipe</th><th class="num">Nominal</th><th>Tanggal</th><th></th></tr></thead>
+          <thead><tr><th>Nama</th><th>Kategori</th><th>Tipe</th><th>Sumber Dana</th><th class="num">Nominal</th><th>Tanggal</th><th></th></tr></thead>
           <tbody id="biayaTbody"></tbody>
         </table>
       </div>
@@ -1414,7 +1426,7 @@ async function loadOrders(){
 async function loadBiayaOps(){
   const {data, error} = await sb.from('biaya_operasional').select('*').order('created_at', {ascending:false});
   if(error) throw error;
-  BIAYA_OPS = data.map(r=>({id:r.id, nama:r.nama, kategori:r.kategori||'', tipe:r.tipe, nominal:Number(r.nominal), tanggal:r.tanggal}));
+  BIAYA_OPS = data.map(r=>({id:r.id, nama:r.nama, kategori:r.kategori||'', tipe:r.tipe, nominal:Number(r.nominal), tanggal:r.tanggal, sumberDana:r.sumber_dana||'laba'}));
 }
 
 async function loadAllData(){
@@ -1685,10 +1697,31 @@ document.getElementById('saveOrderBtn').addEventListener('click', async ()=>{
   }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
 });
 
+let orderListFilter = {start:null, end:null};
 function renderOrderList(){
   const el = document.getElementById('orderList');
   if(!ORDERS.length){ el.innerHTML = '<div class="hint">Belum ada pesanan tercatat.</div>'; return; }
-  el.innerHTML = ORDERS.slice(0,15).map(o=>`
+
+  let list = ORDERS;
+  let filterActive = orderListFilter.start && orderListFilter.end;
+  if(filterActive){
+    list = ORDERS.filter(o=> o.tanggal>=orderListFilter.start && o.tanggal<=orderListFilter.end);
+  } else {
+    list = ORDERS.slice(0,15);
+  }
+
+  if(!list.length){
+    el.innerHTML = filterActive
+      ? `<div class="hint">Tidak ada pesanan antara ${orderListFilter.start} s/d ${orderListFilter.end}.</div>`
+      : '<div class="hint">Belum ada pesanan tercatat.</div>';
+    return;
+  }
+
+  const summaryLine = filterActive
+    ? `<div class="hint" style="margin-bottom:10px;">${list.length} pesanan ditemukan · Total omzet ${rp(list.reduce((s,o)=>s+o.total_omzet,0))}</div>`
+    : '';
+
+  el.innerHTML = summaryLine + list.map(o=>`
     <div class="order-list-row">
       <div>
         <div><b>${o.tanggal}</b>${o.pelanggan? ' · '+o.pelanggan : ''}</div>
@@ -1701,6 +1734,19 @@ function renderOrderList(){
       </div>
     </div>`).join('');
 }
+document.getElementById('orderFilterBtn').addEventListener('click', ()=>{
+  const start = document.getElementById('orderFilterStart').value;
+  const end = document.getElementById('orderFilterEnd').value;
+  if(!start || !end){ alert('Isi tanggal mulai dan tanggal akhir dulu.'); return; }
+  orderListFilter = {start, end};
+  renderOrderList();
+});
+document.getElementById('orderFilterResetBtn').addEventListener('click', ()=>{
+  orderListFilter = {start:null, end:null};
+  document.getElementById('orderFilterStart').value='';
+  document.getElementById('orderFilterEnd').value='';
+  renderOrderList();
+});
 document.getElementById('orderList').addEventListener('click', async (e)=>{
   const btn = e.target.closest('.order-del'); if(!btn) return;
   if(!confirm('Hapus pesanan ini secara permanen?')) return;
@@ -1824,6 +1870,11 @@ function renderLaba(){
   const {total:biayaTotal, breakdown, days} = computeBiayaForPeriod(start,end);
   const labaBersih = labaKotor-biayaTotal;
 
+  const dariLaba = breakdown.filter(b=>b.sumberDana!=='restock');
+  const dariRestock = breakdown.filter(b=>b.sumberDana==='restock');
+  const totalDariLaba = dariLaba.reduce((s,b)=>s+b.applied,0);
+  const totalDariRestock = dariRestock.reduce((s,b)=>s+b.applied,0);
+
   document.getElementById('labaKpiRow').innerHTML = `
     <div class="laba-kpi"><div class="lbl">Omzet</div><div class="val">${rp(omzet)}</div></div>
     <div class="laba-kpi"><div class="lbl">HPP</div><div class="val">${rp(hpp)}</div></div>
@@ -1832,12 +1883,29 @@ function renderLaba(){
     <div class="laba-kpi ${labaBersih>=0?'pos':'neg'}"><div class="lbl">Laba Bersih</div><div class="val">${rp(labaBersih)}</div></div>
   `;
   document.getElementById('labaBiayaBreakdownHint').textContent =
-    `Rincian biaya operasional untuk periode ${start} s/d ${end} (${days} hari). Biaya bulanan diprorata: nominal ÷ 30 × jumlah hari dalam periode.`;
-  document.getElementById('labaBiayaBreakdown').innerHTML = breakdown.length? `
-    <table class="resp-stack"><thead><tr><th>Nama</th><th>Tipe</th><th class="num">Nominal Asli</th><th class="num">Diterapkan (periode ini)</th></tr></thead>
-    <tbody>${breakdown.map(b=>`<tr><td data-label="Nama">${b.nama}</td><td data-label="Tipe">${b.tipe==='bulanan'?'Bulanan':'Sekali ('+b.tanggal+')'}</td>
-    <td class="num" data-label="Nominal">${rp(b.nominal)}</td><td class="num" data-label="Diterapkan">${rp(b.applied)}</td></tr>`).join('')}</tbody></table>
-  ` : '<div class="hint">Belum ada biaya operasional tercatat.</div>';
+    `Rincian biaya operasional untuk periode ${start} s/d ${end} (${days} hari). Biaya bulanan diprorata: nominal ÷ 30 × jumlah hari dalam periode. Laba Bersih tetap dihitung sama (Laba Kotor − seluruh Biaya Operasional) — pemisahan sumber dana di bawah cuma untuk memantau arus kas, bukan mengubah hasil akhir.`;
+
+  function biayaTableHtml(list){
+    return `<table class="resp-stack"><thead><tr><th>Nama</th><th>Tipe</th><th class="num">Nominal Asli</th><th class="num">Diterapkan (periode ini)</th></tr></thead>
+    <tbody>${list.map(b=>`<tr><td data-label="Nama">${b.nama}</td><td data-label="Tipe">${b.tipe==='bulanan'?'Bulanan':'Sekali ('+b.tanggal+')'}</td>
+    <td class="num" data-label="Nominal">${rp(b.nominal)}</td><td class="num" data-label="Diterapkan">${rp(b.applied)}</td></tr>`).join('')}</tbody></table>`;
+  }
+
+  let html = '';
+  if(!breakdown.length){
+    html = '<div class="hint">Belum ada biaya operasional tercatat.</div>';
+  } else {
+    html += `<h4 style="font-size:12px; text-transform:uppercase; color:var(--moss); margin:0 0 8px; font-weight:700;">💚 Dari Dana Laba/Operasional — ${rp(totalDariLaba)}</h4>`;
+    html += dariLaba.length? biayaTableHtml(dariLaba) : '<div class="hint" style="margin-bottom:14px;">Tidak ada.</div>';
+    html += `<h4 style="font-size:12px; text-transform:uppercase; color:var(--rust); margin:18px 0 8px; font-weight:700;">⚠️ Dari Dana Restock (HPP) — ${rp(totalDariRestock)}</h4>`;
+    if(dariRestock.length){
+      html += `<div class="hint" style="margin-bottom:8px; color:var(--rust);">Ada biaya operasional yang memakai dana restock bahan baku. Kalau ini rutin terjadi, dana untuk beli bahan baku berikutnya bisa kurang meski laporan tetap untung.</div>`;
+      html += biayaTableHtml(dariRestock);
+    } else {
+      html += '<div class="hint" style="color:var(--moss);">Tidak ada — bagus, dana restock aman terjaga.</div>';
+    }
+  }
+  document.getElementById('labaBiayaBreakdown').innerHTML = html;
 }
 
 function renderBiayaTable(){
@@ -1845,10 +1913,11 @@ function renderBiayaTable(){
   tbody.innerHTML = BIAYA_OPS.length? BIAYA_OPS.map(b=>`
     <tr><td data-label="Nama">${b.nama}</td><td data-label="Kategori">${b.kategori||'-'}</td>
     <td data-label="Tipe">${b.tipe==='bulanan'?'Bulanan':'Sekali'}</td>
+    <td data-label="Sumber Dana">${b.sumberDana==='restock'?'⚠️ Restock':'💚 Laba'}</td>
     <td class="num" data-label="Nominal">${rp(b.nominal)}</td>
     <td data-label="Tanggal">${b.tanggal||'-'}</td>
     <td><button class="del-btn biaya-del" data-id="${b.id}">✕</button></td></tr>`).join('')
-    : `<tr><td colspan="6" style="text-align:center; color:var(--espresso-soft);">Belum ada biaya operasional.</td></tr>`;
+    : `<tr><td colspan="7" style="text-align:center; color:var(--espresso-soft);">Belum ada biaya operasional.</td></tr>`;
 }
 document.getElementById('biayaTbody').addEventListener('click', async (e)=>{
   const btn = e.target.closest('.biaya-del'); if(!btn) return;
@@ -1870,18 +1939,20 @@ document.getElementById('addBiayaBtn').addEventListener('click', async ()=>{
   const tipe = document.getElementById('biayaTipeInput').value;
   const nominal = parseFloat(document.getElementById('biayaNominalInput').value)||0;
   const tanggal = document.getElementById('biayaTanggalInput').value || null;
+  const sumberDana = document.getElementById('biayaSumberInput').value;
   statusEl.className='save-status'; statusEl.textContent='';
   if(!nama){ statusEl.className='save-status err'; statusEl.textContent='Isi nama biaya dulu.'; return; }
   if(tipe==='sekali' && !tanggal){ statusEl.className='save-status err'; statusEl.textContent='Isi tanggal untuk biaya bertipe sekali.'; return; }
   statusEl.textContent='⏳ Menyimpan…';
   try{
-    const {error} = await sb.from('biaya_operasional').insert({nama, kategori, tipe, nominal, tanggal: tipe==='sekali'?tanggal:null});
+    const {error} = await sb.from('biaya_operasional').insert({nama, kategori, tipe, nominal, tanggal: tipe==='sekali'?tanggal:null, sumber_dana: sumberDana});
     if(error) throw error;
     statusEl.className='save-status ok'; statusEl.textContent='✓ Tersimpan.';
     document.getElementById('biayaNamaInput').value='';
     document.getElementById('biayaKategoriInput').value='';
     document.getElementById('biayaNominalInput').value='';
     document.getElementById('biayaTanggalInput').value='';
+    document.getElementById('biayaSumberInput').value='laba';
     await loadBiayaOps();
     renderBiayaTable();
     renderLaba();
