@@ -166,6 +166,26 @@
   .laba-kpi .val{font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; margin-top:5px;}
   .laba-kpi.neg .val{color:var(--rust);}
   .laba-kpi.pos .val{color:var(--moss);}
+
+  /* ---- Kas Dua Dompet ---- */
+  .kas-saldo-row{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px;}
+  @media (max-width:720px){ .kas-saldo-row{grid-template-columns:1fr;} }
+  .kas-saldo-card{border-radius:14px; padding:20px 22px; box-shadow:var(--shadow);}
+  .kas-saldo-card.bb{background:linear-gradient(135deg,#F3E2C8,#EAD3A6); border:1px solid #D8B978;}
+  .kas-saldo-card.laba{background:linear-gradient(135deg,#E9EEDB,#D7E2C2); border:1px solid #B9CB98;}
+  .kas-saldo-card .lbl{font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--espresso-soft); font-weight:700;}
+  .kas-saldo-card .val{font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:700; margin-top:6px; color:var(--espresso);}
+  .kas-saldo-card .sub-meta{font-size:12px; color:var(--espresso-soft); margin-top:6px;}
+  .kas-setup-row{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px;}
+  .kas-setup-row .field{display:flex; flex-direction:column; gap:4px;}
+  .kas-setup-row .field label{font-size:11.5px; font-weight:600; color:var(--espresso-soft);}
+  .kas-setup-row input, .kas-setup-row select{padding:9px 12px; border:1px solid var(--line); border-radius:8px; font-family:'Inter',sans-serif; font-size:13.5px; background:var(--cream);}
+  .kas-history-row{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); font-size:13px;}
+  .kas-history-row:last-child{border-bottom:none;}
+  .kas-history-row .meta{font-size:11.5px; color:var(--espresso-soft); font-family:'JetBrains Mono',monospace;}
+  .kas-tag{font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:20px; font-family:'JetBrains Mono',monospace;}
+  .kas-tag.bb{background:var(--caramel-bg); color:#8A5A28;}
+  .kas-tag.laba{background:var(--moss-bg); color:var(--moss);}
 </style>
 </head>
 <body>
@@ -205,6 +225,7 @@
     <button class="tab-btn" data-tab="pesanan">🧾 Pemesanan</button>
     <button class="tab-btn" data-tab="rekap">📊 Rekap Penjualan</button>
     <button class="tab-btn" data-tab="laba">💰 Laba &amp; Biaya Operasional</button>
+    <button class="tab-btn" data-tab="kas">💵 Kas Bahan Baku &amp; Laba</button>
   </div>
 
   <div class="tab-panel active" id="tabBahan">
@@ -369,6 +390,92 @@
         </table>
       </div>
     </div>
+  </section>
+  </div>
+
+  <div class="tab-panel" id="tabKas">
+  <section>
+    <div class="sec-head"><h2>Saldo Kas Saat Ini</h2><div class="hint">Dihitung dari saldo awal + mutasi manual − pembelian bahan baku − biaya operasional yang ditandai per kas</div></div>
+    <div class="kas-saldo-row">
+      <div class="kas-saldo-card bb">
+        <div class="lbl">Kas Bahan Baku</div>
+        <div class="val" id="kasSaldoBB">Rp0</div>
+        <div class="sub-meta" id="kasSaldoBBMeta"></div>
+      </div>
+      <div class="kas-saldo-card laba">
+        <div class="lbl">Kas Laba / Operasional</div>
+        <div class="val" id="kasSaldoLaba">Rp0</div>
+        <div class="sub-meta" id="kasSaldoLabaMeta"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Saldo Awal &amp; Tanggal Mulai Pencatatan</h2></div>
+    <div class="card">
+      <div class="hint" style="margin-bottom:12px;">Isi ini sekali di awal, sesuai saldo kas yang sudah Anda pegang saat ini. Setelah itu, cukup catat pembelian &amp; mutasi — saldo akan mengikuti otomatis.</div>
+      <div class="kas-setup-row">
+        <div class="field"><label>Saldo Awal Kas Bahan Baku (Rp)</label><input type="number" id="kasSetupBBSaldo" min="0" style="width:160px;"></div>
+        <div class="field"><label>Berlaku Sejak Tanggal</label><input type="date" id="kasSetupBBTanggal"></div>
+        <div class="field"><label>Saldo Awal Kas Laba (Rp)</label><input type="number" id="kasSetupLabaSaldo" min="0" style="width:160px;"></div>
+        <div class="field"><label>Berlaku Sejak Tanggal</label><input type="date" id="kasSetupLabaTanggal"></div>
+        <button class="btn btn-primary" id="saveKasSetupBtn" style="background:var(--moss);">💾 Simpan Saldo Awal</button>
+      </div>
+      <div class="save-status" id="kasSetupStatus"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Catat Pembelian Bahan Baku</h2><div class="hint">Otomatis mengurangi saldo Kas Bahan Baku</div></div>
+    <div class="card">
+      <div class="kas-setup-row">
+        <div class="field"><label>Tanggal</label><input type="date" id="pembelianTanggal"></div>
+        <div class="field"><label>Keterangan (opsional)</label><input type="text" id="pembelianKeterangan" placeholder="mis. Belanja ke Toko Sumber Jaya" style="width:220px;"></div>
+      </div>
+      <div class="kas-setup-row">
+        <div class="field" style="flex:1; min-width:220px;"><label>Bahan Baku</label><input type="text" id="pembelianBahanInput" list="bahanNameListGlobal" placeholder="Ketik nama bahan baku..."></div>
+        <div class="field"><label>Qty</label><input type="number" id="pembelianQtyInput" min="0" step="any" style="width:100px;"></div>
+        <div class="field"><label>Harga Satuan (Rp)</label><input type="number" id="pembelianHargaInput" min="0" style="width:130px;"></div>
+        <button class="btn btn-ghost" id="pembelianAddItemBtn">+ Tambah Item</button>
+      </div>
+      <datalist id="bahanNameListGlobal"></datalist>
+      <div class="save-status" id="pembelianItemErr"></div>
+      <div style="overflow-x:auto;">
+        <table class="resp-stack">
+          <thead><tr><th>Bahan</th><th class="num">Qty</th><th class="num">Harga Satuan</th><th class="num">Subtotal</th><th></th></tr></thead>
+          <tbody id="pembelianItemsTbody"><tr><td colspan="5" style="text-align:center; color:var(--espresso-soft);">Belum ada item.</td></tr></tbody>
+        </table>
+      </div>
+      <div class="order-total-box"><div><div class="lbl">Total Pembelian</div><div class="val" id="pembelianTotalVal">Rp0</div></div></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="savePembelianBtn" style="background:var(--moss);">💾 Simpan Pembelian</button>
+        <span class="save-status" id="pembelianSaveStatus"></span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Catat Mutasi Kas Manual</h2><div class="hint">Untuk setoran dari hasil penjualan, atau penarikan lain-lain</div></div>
+    <div class="card">
+      <div class="kas-setup-row">
+        <div class="field"><label>Kas</label>
+          <select id="mutasiKasInput"><option value="bahan_baku">Kas Bahan Baku</option><option value="laba">Kas Laba/Operasional</option></select>
+        </div>
+        <div class="field"><label>Tipe</label>
+          <select id="mutasiTipeInput"><option value="masuk">Masuk (setoran)</option><option value="keluar">Keluar (penarikan)</option></select>
+        </div>
+        <div class="field"><label>Jumlah (Rp)</label><input type="number" id="mutasiJumlahInput" min="0" style="width:140px;"></div>
+        <div class="field"><label>Tanggal</label><input type="date" id="mutasiTanggalInput"></div>
+        <div class="field" style="flex:1; min-width:180px;"><label>Keterangan</label><input type="text" id="mutasiKeteranganInput" placeholder="mis. Setoran margin penjualan Juli"></div>
+        <button class="btn btn-primary" id="addMutasiBtn">+ Catat</button>
+      </div>
+      <div class="save-status" id="mutasiAddStatus"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>Riwayat Transaksi Kas</h2></div>
+    <div class="card"><div id="kasHistoryList"><div class="hint">Memuat…</div></div></div>
   </section>
   </div>
 
@@ -1460,6 +1567,7 @@ async function loadAllData(){
 
     await loadOrders();
     await loadBiayaOps();
+    await loadKasData();
 
     selectedVarian = RESEP.length? RESEP[0].varian : null;
     renderBahanTable();
@@ -1474,6 +1582,14 @@ async function loadAllData(){
     renderBiayaTable();
     renderLabaPeriodRow();
     renderLaba();
+    populateBahanNameListGlobal();
+    renderKasSetupForm();
+    renderKasSaldo();
+    document.getElementById('pembelianTanggal').value = todayISO();
+    document.getElementById('mutasiTanggalInput').value = todayISO();
+    pembelianItemsDraft = [];
+    renderPembelianItems();
+    renderKasHistory();
 
     syncEl.textContent = `✓ ${BAHAN_BAKU.length} bahan baku, ${RESEP.length} varian, ${ORDERS.length} pesanan tersinkron dari Supabase.`;
   }catch(err){
@@ -1959,11 +2075,204 @@ document.getElementById('addBiayaBtn').addEventListener('click', async ()=>{
   }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
 });
 
+/* ---------------- KAS BAHAN BAKU & KAS LABA (DUA DOMPET) ---------------- */
+let KAS_SETUP = {bahan_baku:{saldo_awal:0, tanggal_mulai:todayISO()}, laba:{saldo_awal:0, tanggal_mulai:todayISO()}};
+let KAS_MUTASI = [];
+let PEMBELIAN = [];
+let pembelianItemsDraft = [];
+
+async function loadKasData(){
+  const {data: setupRows, error: e1} = await sb.from('kas_setup').select('*');
+  if(e1) throw e1;
+  KAS_SETUP = {bahan_baku:{saldo_awal:0, tanggal_mulai:todayISO()}, laba:{saldo_awal:0, tanggal_mulai:todayISO()}};
+  (setupRows||[]).forEach(r=>{ KAS_SETUP[r.kas_type] = {saldo_awal:Number(r.saldo_awal), tanggal_mulai:r.tanggal_mulai}; });
+
+  const {data: mutasiRows, error: e2} = await sb.from('kas_mutasi').select('*').order('tanggal', {ascending:false});
+  if(e2) throw e2;
+  KAS_MUTASI = mutasiRows.map(m=>({id:m.id, kasType:m.kas_type, tanggal:m.tanggal, tipe:m.tipe, jumlah:Number(m.jumlah), keterangan:m.keterangan||''}));
+
+  const {data: pembelianRows, error: e3} = await sb.from('pembelian_bahan_baku').select('*').order('tanggal', {ascending:false});
+  if(e3) throw e3;
+  PEMBELIAN = pembelianRows.map(p=>({id:p.id, tanggal:p.tanggal, keterangan:p.keterangan||'', items:p.items||[], total:Number(p.total)}));
+}
+
+function computeSaldoKas(kasType){
+  const setup = KAS_SETUP[kasType] || {saldo_awal:0, tanggal_mulai:todayISO()};
+  let saldo = setup.saldo_awal;
+  KAS_MUTASI.filter(m=>m.kasType===kasType && m.tanggal>=setup.tanggal_mulai).forEach(m=>{
+    saldo += (m.tipe==='masuk'? m.jumlah : -m.jumlah);
+  });
+  if(kasType==='bahan_baku'){
+    PEMBELIAN.filter(p=>p.tanggal>=setup.tanggal_mulai).forEach(p=>{ saldo -= p.total; });
+  }
+  const {breakdown} = computeBiayaForPeriod(setup.tanggal_mulai, todayISO());
+  const relevantSumber = kasType==='bahan_baku' ? 'restock' : 'laba';
+  breakdown.filter(b=> (b.sumberDana||'laba')===relevantSumber).forEach(b=>{ saldo -= b.applied; });
+  return saldo;
+}
+
+function renderKasSaldo(){
+  const bb = computeSaldoKas('bahan_baku');
+  const laba = computeSaldoKas('laba');
+  document.getElementById('kasSaldoBB').textContent = rp(bb);
+  document.getElementById('kasSaldoLaba').textContent = rp(laba);
+  document.getElementById('kasSaldoBBMeta').textContent = `Sejak ${KAS_SETUP.bahan_baku.tanggal_mulai} · saldo awal ${rp(KAS_SETUP.bahan_baku.saldo_awal)}`;
+  document.getElementById('kasSaldoLabaMeta').textContent = `Sejak ${KAS_SETUP.laba.tanggal_mulai} · saldo awal ${rp(KAS_SETUP.laba.saldo_awal)}`;
+}
+
+function renderKasSetupForm(){
+  document.getElementById('kasSetupBBSaldo').value = KAS_SETUP.bahan_baku.saldo_awal || '';
+  document.getElementById('kasSetupBBTanggal').value = KAS_SETUP.bahan_baku.tanggal_mulai || todayISO();
+  document.getElementById('kasSetupLabaSaldo').value = KAS_SETUP.laba.saldo_awal || '';
+  document.getElementById('kasSetupLabaTanggal').value = KAS_SETUP.laba.tanggal_mulai || todayISO();
+}
+document.getElementById('saveKasSetupBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('kasSetupStatus');
+  const bbSaldo = parseFloat(document.getElementById('kasSetupBBSaldo').value)||0;
+  const bbTgl = document.getElementById('kasSetupBBTanggal').value || todayISO();
+  const labaSaldo = parseFloat(document.getElementById('kasSetupLabaSaldo').value)||0;
+  const labaTgl = document.getElementById('kasSetupLabaTanggal').value || todayISO();
+  statusEl.className='save-status'; statusEl.textContent='⏳ Menyimpan…';
+  try{
+    const {error} = await sb.from('kas_setup').upsert([
+      {kas_type:'bahan_baku', saldo_awal:bbSaldo, tanggal_mulai:bbTgl, updated_at:new Date().toISOString()},
+      {kas_type:'laba', saldo_awal:labaSaldo, tanggal_mulai:labaTgl, updated_at:new Date().toISOString()},
+    ], {onConflict:'kas_type'});
+    if(error) throw error;
+    KAS_SETUP.bahan_baku = {saldo_awal:bbSaldo, tanggal_mulai:bbTgl};
+    KAS_SETUP.laba = {saldo_awal:labaSaldo, tanggal_mulai:labaTgl};
+    statusEl.className='save-status ok'; statusEl.textContent='✓ Tersimpan.';
+    renderKasSaldo();
+  }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
+});
+
+function populateBahanNameListGlobal(){
+  const dl = document.getElementById('bahanNameListGlobal');
+  if(!dl) return;
+  dl.innerHTML = BAHAN_BAKU.map(b=>`<option value="${b.nama.replace(/"/g,'&quot;')}">`).join('');
+}
+
+/* --- Pembelian Bahan Baku --- */
+function renderPembelianItems(){
+  const tbody = document.getElementById('pembelianItemsTbody');
+  if(!pembelianItemsDraft.length){
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--espresso-soft);">Belum ada item.</td></tr>`;
+  } else {
+    tbody.innerHTML = pembelianItemsDraft.map((it,idx)=>`
+      <tr><td data-label="Bahan">${it.bahan}</td><td class="num" data-label="Qty">${it.qty}</td>
+      <td class="num" data-label="Harga">${rp(it.harga)}</td><td class="num" data-label="Subtotal">${rp(it.qty*it.harga)}</td>
+      <td><button class="del-btn pembelian-item-del" data-idx="${idx}">✕</button></td></tr>`).join('');
+  }
+  const total = pembelianItemsDraft.reduce((s,i)=>s+i.qty*i.harga,0);
+  document.getElementById('pembelianTotalVal').textContent = rp(total);
+}
+document.getElementById('pembelianAddItemBtn').addEventListener('click', ()=>{
+  const nameInput = document.getElementById('pembelianBahanInput');
+  const qtyInput = document.getElementById('pembelianQtyInput');
+  const hargaInput = document.getElementById('pembelianHargaInput');
+  const errEl = document.getElementById('pembelianItemErr');
+  errEl.textContent='';
+  const nama = nameInput.value.trim();
+  const qty = parseFloat(qtyInput.value)||0;
+  let harga = parseFloat(hargaInput.value);
+  if(!nama){ errEl.textContent='Ketik nama bahan baku dulu.'; return; }
+  if(!qty){ errEl.textContent='Isi qty dulu.'; return; }
+  const match = BAHAN_BAKU.find(b=>b.nama.toLowerCase()===nama.toLowerCase());
+  if(isNaN(harga)){
+    if(match) harga = match.hargaKemasan;
+    else { errEl.textContent='Isi harga satuan (bahan tidak ditemukan di daftar HPP untuk auto-isi).'; return; }
+  }
+  pembelianItemsDraft.push({bahan:nama, qty, harga});
+  nameInput.value=''; qtyInput.value=''; hargaInput.value='';
+  renderPembelianItems();
+});
+document.getElementById('pembelianItemsTbody').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.pembelian-item-del'); if(!btn) return;
+  pembelianItemsDraft.splice(+btn.dataset.idx,1);
+  renderPembelianItems();
+});
+document.getElementById('savePembelianBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('pembelianSaveStatus');
+  if(!pembelianItemsDraft.length){ statusEl.className='save-status err'; statusEl.textContent='Tambah minimal 1 item dulu.'; return; }
+  const tanggal = document.getElementById('pembelianTanggal').value || todayISO();
+  const keterangan = document.getElementById('pembelianKeterangan').value.trim();
+  const items = pembelianItemsDraft.map(it=>({bahan:it.bahan, qty:it.qty, harga:it.harga, subtotal:it.qty*it.harga}));
+  const total = items.reduce((s,i)=>s+i.subtotal,0);
+  statusEl.className='save-status'; statusEl.textContent='⏳ Menyimpan…';
+  try{
+    const {error} = await sb.from('pembelian_bahan_baku').insert({tanggal, keterangan, items, total});
+    if(error) throw error;
+    statusEl.className='save-status ok'; statusEl.textContent='✓ Pembelian tersimpan.';
+    pembelianItemsDraft = [];
+    document.getElementById('pembelianKeterangan').value='';
+    renderPembelianItems();
+    await loadKasData();
+    renderKasSaldo();
+    renderKasHistory();
+  }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
+});
+
+/* --- Mutasi Kas Manual --- */
+document.getElementById('addMutasiBtn').addEventListener('click', async ()=>{
+  const statusEl = document.getElementById('mutasiAddStatus');
+  const kasType = document.getElementById('mutasiKasInput').value;
+  const tipe = document.getElementById('mutasiTipeInput').value;
+  const jumlah = parseFloat(document.getElementById('mutasiJumlahInput').value)||0;
+  const tanggal = document.getElementById('mutasiTanggalInput').value || todayISO();
+  const keterangan = document.getElementById('mutasiKeteranganInput').value.trim();
+  if(!jumlah){ statusEl.className='save-status err'; statusEl.textContent='Isi jumlah dulu.'; return; }
+  statusEl.className='save-status'; statusEl.textContent='⏳ Menyimpan…';
+  try{
+    const {error} = await sb.from('kas_mutasi').insert({kas_type:kasType, tanggal, tipe, jumlah, keterangan});
+    if(error) throw error;
+    statusEl.className='save-status ok'; statusEl.textContent='✓ Tercatat.';
+    document.getElementById('mutasiJumlahInput').value='';
+    document.getElementById('mutasiKeteranganInput').value='';
+    await loadKasData();
+    renderKasSaldo();
+    renderKasHistory();
+  }catch(err){ statusEl.className='save-status err'; statusEl.textContent='✕ Gagal: '+err.message; }
+});
+
+/* --- Riwayat Gabungan --- */
+function renderKasHistory(){
+  const el = document.getElementById('kasHistoryList');
+  const combined = [
+    ...KAS_MUTASI.map(m=>({tanggal:m.tanggal, kasType:m.kasType, jenis: m.tipe==='masuk'?'Setoran':'Penarikan', jumlah: m.tipe==='masuk'? m.jumlah : -m.jumlah, keterangan:m.keterangan, id:m.id, source:'mutasi'})),
+    ...PEMBELIAN.map(p=>({tanggal:p.tanggal, kasType:'bahan_baku', jenis:'Pembelian Bahan Baku', jumlah:-p.total, keterangan: p.keterangan || p.items.map(i=>i.bahan+' x'+i.qty).join(', '), id:p.id, source:'pembelian'})),
+  ].sort((a,b)=> b.tanggal.localeCompare(a.tanggal));
+
+  if(!combined.length){ el.innerHTML = '<div class="hint">Belum ada transaksi kas tercatat.</div>'; return; }
+
+  el.innerHTML = combined.slice(0,40).map(t=>`
+    <div class="kas-history-row">
+      <div>
+        <div><span class="kas-tag ${t.kasType==='bahan_baku'?'bb':'laba'}">${t.kasType==='bahan_baku'?'Bahan Baku':'Laba'}</span> ${t.jenis}</div>
+        <div class="meta">${t.tanggal}${t.keterangan? ' · '+t.keterangan : ''}</div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:'JetBrains Mono',monospace; font-weight:700; color:${t.jumlah<0?'var(--rust)':'var(--moss)'};">${t.jumlah<0?'-':'+'}${rp(Math.abs(t.jumlah))}</div>
+        <button class="del-btn kas-hist-del" data-id="${t.id}" data-source="${t.source}">✕ Hapus</button>
+      </div>
+    </div>`).join('');
+}
+document.getElementById('kasHistoryList').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('.kas-hist-del'); if(!btn) return;
+  if(!confirm('Hapus transaksi ini?')) return;
+  try{
+    const table = btn.dataset.source==='pembelian' ? 'pembelian_bahan_baku' : 'kas_mutasi';
+    await sb.from(table).delete().eq('id', +btn.dataset.id);
+    await loadKasData();
+    renderKasSaldo();
+    renderKasHistory();
+  }catch(err){ alert('Gagal hapus: '+err.message); }
+});
+
 /* ---------------- TAB NAVIGASI ---------------- */
 document.getElementById('mainTabs').addEventListener('click', (e)=>{
   const btn = e.target.closest('.tab-btn'); if(!btn) return;
   const target = btn.dataset.tab;
-  const idMap = {bahan:'tabBahan', resep:'tabResep', pesanan:'tabPesanan', rekap:'tabRekap', laba:'tabLaba'};
+  const idMap = {bahan:'tabBahan', resep:'tabResep', pesanan:'tabPesanan', rekap:'tabRekap', laba:'tabLaba', kas:'tabKas'};
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b===btn));
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id===idMap[target]));
   if(target==='resep') requestAnimationFrame(()=> chartSummary && chartSummary.resize());
